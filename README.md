@@ -171,9 +171,9 @@ Python 版：
 
 - `merchant_order_no`：商户订单号，必须唯一
 - `amount`：支付金额，单位为元
-- `currency`：币种，默认 `CNY`
+<!-- - `currency`：币种，默认 `CNY`
 - `channel`：支付渠道，默认 `comm`
-- `subject`：订单说明
+- `subject`：订单说明 -->
 - `notify_url`：异步通知地址，可选
 
 返回结果中的 `pay_qrcode_markdown` 可以直接让 AI 输出给用户，用于扫码支付。
