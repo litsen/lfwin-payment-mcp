@@ -1,5 +1,6 @@
 {
   "name": "lfwin-payment-mcp",
+  "displayName": "LFWin Payment MCP",
   "version": "0.1.1",
   "description": "Payment MCP server for AI agents. Create payment orders, query payment status, create refunds, and query refund status.",
   "author": {
@@ -10,5 +11,7 @@
   "repository": "https://github.com/litsen/lfwin-payment-mcp",
   "license": "MIT",
   "keywords": ["mcp", "payment", "refund", "ai-agent", "cursor", "cline"],
-  "mcpServers": "./.mcp.json"
+  "components": {
+    "mcp": "./.mcp.json"
+  }
 }
