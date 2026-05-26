@@ -1,7 +1,0 @@
-0000000000000000000000000000000000000000 46ba3a15392620a05ef61df931cd443b78072203 Payment MCP Publisher <payment-mcp@example.local> 1779174007 +0800	update by push
-46ba3a15392620a05ef61df931cd443b78072203 18cbd2df55f0e37e5793c019e5063a5258054263 Payment MCP Publisher <payment-mcp@example.local> 1779174201 +0800	update by push
-18cbd2df55f0e37e5793c019e5063a5258054263 b2ee454d5477b1e4dfb87d85911dac05ee93e801 Payment MCP Publisher <payment-mcp@example.local> 1779175895 +0800	update by push
-b2ee454d5477b1e4dfb87d85911dac05ee93e801 fdc1638638c64b5d9e48c7c6da842277070fcc9e Payment MCP Publisher <payment-mcp@example.local> 1779179257 +0800	update by push
-fdc1638638c64b5d9e48c7c6da842277070fcc9e 4f0c20e324dded5012c15da8b076f749e9b2de9c Payment MCP Publisher <payment-mcp@example.local> 1779181525 +0800	pull --rebase origin main: fast-forward
-4f0c20e324dded5012c15da8b076f749e9b2de9c 511f697bf5b4a6dc7a77507ffb36fc756129c0b4 Payment MCP Publisher <payment-mcp@example.local> 1779181534 +0800	update by push
-511f697bf5b4a6dc7a77507ffb36fc756129c0b4 8ced6bf3ef75cedb819208081a217cee38901d30 Payment MCP Publisher <payment-mcp@example.local> 1779185828 +0800	update by push

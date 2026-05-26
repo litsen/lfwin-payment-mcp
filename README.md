@@ -1,57 +1,59 @@
-﻿# LFWin 鏀粯 MCP Server
+﻿# LFWin Payment MCP Server
 
 [![CI](https://github.com/litsen/lfwin-payment-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/litsen/lfwin-payment-mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![npm](https://img.shields.io/npm/v/@litsen/lfwin-payment-mcp.svg)](https://www.npmjs.com/package/@litsen/lfwin-payment-mcp)
 
-杩欐槸涓€涓潰鍚?Cursor銆丆line 绛?MCP 瀹㈡埛绔殑 LFWin 鏀粯宸ュ叿鍖呫€傞」鐩悓鏃朵繚鐣欎袱绉嶅疄鐜帮細
+LFWin Payment MCP Server 是一个面向 AI Agent 的支付能力服务。它通过标准 MCP 协议，把创建支付订单、查询支付状态、发起退款、查询退款状态等能力开放给 Cursor、Cline、Claude Desktop、企业智能助手和自研 Agent 应用。
 
-- Python 鐗堬細浣嶄簬 `payment_mcp/`锛岄€傚悎宸叉湁 Python 鐜鐨勭敤鎴枫€?
-- Node.js 鐗堬細浣嶄簬 `node-mcp/`锛岄€傚悎閫氳繃 `npx` 蹇€熷惎鍔紝鎺ㄨ崘缁欐櫘閫?MCP 浣跨敤鑰呫€?
+项目同时提供两种实现：
 
-涓ょ瀹炵幇鎻愪緵鐩稿悓鐨?MCP 宸ュ叿鑳藉姏锛岀敤鎴峰彲浠ユ寜鑷繁鐨勭幆澧冮€夋嫨瀹夎鏂瑰紡銆?
+- Node.js 版：位于 [node-mcp](node-mcp/)，推荐普通 MCP 用户通过 `npx` 快速启动。
+- Python 版：位于 [payment_mcp](payment_mcp/)，适合已有 Python 环境或需要二次开发的用户。
 
-鑾峰彇鏀粯鏉冮檺鎴栧瘑閽ワ紝璇疯仈绯绘湇鍔″晢瀹㈡湇銆?
+两种实现提供相同的 MCP 工具能力。获取支付权限或密钥，请联系服务商客服。
 
-## 鍔熻兘
+## 功能
 
-- `create_payment_order`锛氬垱寤虹粺涓€鏀堕摱鍙版敮浠樿鍗?
-- `query_payment_order`锛氭煡璇㈡敮浠樿鍗曠姸鎬?
-- `refund_payment_order`锛氬彂璧烽€€娆?
-- `query_refund_status`锛氭煡璇㈤€€娆剧姸鎬?
+- `create_payment_order`：创建统一收银台支付订单
+- `query_payment_order`：查询支付订单状态
+- `refund_payment_order`：发起退款
+- `query_refund_status`：查询退款状态
 
-鍒涘缓鏀粯璁㈠崟鏃跺彧浼氳皟鐢ㄧ粺涓€鏀堕摱鍙版帴鍙ｇ敓鎴愪竴娆¤鍗曪紝骞惰繑鍥炴敮浠橀摼鎺ュ拰浜岀淮鐮佸浘鐗囷細
+创建支付订单时会返回支付链接和二维码相关字段：
 
-- `pay_url`锛氱粺涓€鏀堕摱鍙版敮浠樿烦杞摼鎺?
-- `qrcode`锛氬悓 `pay_url`锛岀敤浜庡吋瀹归渶瑕佹壂鐮佸唴瀹圭殑璋冪敤鏂?
-- `pay_qrcode_image`锛氬熀浜?`pay_url` 鐢熸垚鐨勪簩缁寸爜 PNG 鍥剧墖 `data:image/png;base64,...` 鍦板潃
-- `pay_qrcode_markdown`锛氬彲鐩存帴灞曠ず鐨?Markdown 鍥剧墖鏂囨湰
+- `pay_url`：统一收银台支付跳转链接
+- `qrcode`：同 `pay_url`，用于兼容需要扫码内容的调用方
+- `pay_qrcode_image`：基于 `pay_url` 生成的二维码 PNG `data:image/png;base64,...`
+- `pay_qrcode_markdown`：可直接展示的 Markdown 图片文本
 
-## 鐜鍙橀噺
+Node.js 版还会在 MCP 工具结果中额外返回 `type: "image"` 的 PNG 内容块，方便支持图片渲染的 MCP 客户端直接显示二维码。
 
-涓ょ瀹炵幇閮介渶瑕佷互涓嬬幆澧冨彉閲忥細
+## 环境变量
+
+正常使用只需要配置：
 
 ```env
 PAYMENT_API_KEY=your_api_key_here
 PAYMENT_SIGN_KEY=your_sign_key_here
 ```
 
-榛樿閰嶇疆锛?
+默认配置：
 
-- 鎺ュ彛鍦板潃锛歚http://api2.lfwin.com`
-- 绛惧悕鏂瑰紡锛歚MD5`
+- 接口域名：`http://api2.lfwin.com`
+- 签名方式：`MD5`
 
-閫氬父鍙渶瑕侀厤缃?`PAYMENT_API_KEY` 鍜?`PAYMENT_SIGN_KEY`銆?
+通常不需要额外配置接口域名和签名方式。
 
-## 瀹夎鏂瑰紡涓€锛歂ode.js 鐗?
+## 安装方式一：Node.js 版
 
-鎺ㄨ崘鏅€氱敤鎴蜂娇鐢?Node.js 鐗堛€傚彂甯冨埌 npm 鍚庯紝鍙互鐩存帴閫氳繃 `npx` 鍚姩锛?
+推荐普通用户使用 Node.js 版。发布到 npm 后，可直接通过 `npx` 启动：
 
 ```bash
 npx -y @litsen/lfwin-payment-mcp
 ```
 
-Cursor 閰嶇疆绀轰緥锛?
+Cursor 配置示例：
 
 ```json
 {
@@ -69,7 +71,7 @@ Cursor 閰嶇疆绀轰緥锛?
 }
 ```
 
-鏈湴婧愮爜璋冭瘯 Node.js 鐗堬細
+本地源码调试 Node.js 版：
 
 ```bash
 cd node-mcp
@@ -78,25 +80,25 @@ npm run build
 node dist/index.js
 ```
 
-鏇村璇存槑瑙?[node-mcp/README.md](node-mcp/README.md)銆?
+更多说明见 [node-mcp/README.md](node-mcp/README.md)。
 
-## 瀹夎鏂瑰紡浜岋細Python 鐗?
+## 安装方式二：Python 版
 
-濡傛灉浣犲凡缁忔湁 Python 3.12 鎴栨洿楂樼増鏈紝涔熷彲浠ヤ娇鐢?Python 鐗堛€?
+如果你已有 Python 3.12 或更高版本，也可以使用 Python 版。
 
-浠?GitHub 瀹夎锛?
+从 GitHub 安装：
 
 ```bash
 pip install git+https://github.com/litsen/lfwin-payment-mcp.git
 ```
 
-瀹夎瀹屾垚鍚庝細寰楀埌 MCP 鍚姩鍛戒护锛?
+安装完成后会得到 MCP 启动命令：
 
 ```bash
 payment-mcp
 ```
 
-Cursor 閰嶇疆绀轰緥锛?
+Cursor 配置示例：
 
 ```json
 {
@@ -114,16 +116,16 @@ Cursor 閰嶇疆绀轰緥锛?
 }
 ```
 
-婧愮爜寮€鍙戞椂涔熷彲浠ヨ繖鏍疯繍琛岋細
+源码开发时也可以这样运行：
 
 ```bash
 pip install -r requirements.txt
 python -m payment_mcp.mcp_stdio
 ```
 
-## Cline 閰嶇疆
+## Cline 配置
 
-Node.js 鐗堬細
+Node.js 版：
 
 ```json
 {
@@ -141,7 +143,7 @@ Node.js 鐗堬細
 }
 ```
 
-Python 鐗堬細
+Python 版：
 
 ```json
 {
@@ -159,61 +161,69 @@ Python 鐗堬細
 }
 ```
 
-## 宸ュ叿鍙傛暟
+## 工具参数
 
 ### create_payment_order
 
-鍒涘缓鏀粯璁㈠崟銆?
+创建支付订单。
 
-鍙傛暟锛?
+参数：
 
-- `merchant_order_no`锛氬晢鎴疯鍗曞彿锛屽繀椤诲敮涓€
-- `amount`锛氭敮浠橀噾棰濓紝鍗曚綅涓哄厓
-- `currency`锛氬竵绉嶏紝榛樿 `CNY`
-- `channel`锛氭敮浠樻笭閬擄紝榛樿 `comm`
-- `subject`锛氳鍗曡鏄?
-- `notify_url`锛氬紓姝ラ€氱煡鍦板潃锛屽彲閫?
+- `merchant_order_no`：商户订单号，必须唯一
+- `amount`：支付金额，单位为元
+- `currency`：币种，默认 `CNY`
+- `channel`：支付渠道，默认 `comm`
+- `subject`：订单说明
+- `notify_url`：异步通知地址，可选
 
-杩斿洖缁撴灉涓殑 `pay_qrcode_markdown` 鍙互鐩存帴璁?AI 杈撳嚭缁欑敤鎴凤紝鐢ㄤ簬鎵爜鏀粯銆?
+返回结果中的 `pay_qrcode_markdown` 可以直接让 AI 输出给用户，用于扫码支付。
 
 ### query_payment_order
 
-鏌ヨ鏀粯璁㈠崟鐘舵€併€?
+查询支付订单状态。
 
-鍙傛暟锛?
+参数：
 
-- `order_no`锛氬钩鍙拌鍗曞彿
+- `order_no`：平台订单号
 
 ### refund_payment_order
 
-鍙戣捣閫€娆俱€?
+发起退款。
 
-鍙傛暟锛?
+参数：
 
-- `order_no`锛氬钩鍙拌鍗曞彿
-- `refund_amount`锛氶€€娆鹃噾棰濓紝鍗曚綅涓哄厓
-- `reason`锛氶€€娆惧師鍥?
-- `mch_refund_no`锛氬晢鎴烽€€娆惧崟鍙凤紝蹇呴』鍞竴
+- `order_no`：平台订单号
+- `refund_amount`：退款金额，单位为元
+- `reason`：退款原因
+- `mch_refund_no`：商户退款单号，必须唯一
 
 ### query_refund_status
 
-鏌ヨ閫€娆剧姸鎬併€?
+查询退款状态。
 
-鍙傛暟锛?
+参数：
 
-- `order_no`锛氬钩鍙拌鍗曞彿
-- `mch_refund_no`锛氬晢鎴烽€€娆惧崟鍙凤紝鍙€?
+- `order_no`：平台订单号
+- `mch_refund_no`：商户退款单号，可选
 
-## 鍙戝竷
+## Open Plugins / Cursor Directory
 
-Python 鐗堟瀯寤?wheel 鍖咃細
+仓库根目录提供 [mcp.json](mcp.json)，用于 Open Plugins / Cursor Directory 识别 MCP 组件。
+
+## Glama
+
+仓库根目录提供 [glama.json](glama.json)、[Dockerfile](Dockerfile)、[LICENSE](LICENSE)、[SECURITY.md](SECURITY.md) 和 GitHub Actions CI，用于提升 Glama 收录和评分。
+
+## 发布
+
+Python 版构建 wheel 包：
 
 ```bash
 pip install build
 python -m build
 ```
 
-Node.js 鐗堝彂甯?npm 鍖咃細
+Node.js 版发布 npm 包：
 
 ```bash
 cd node-mcp
@@ -221,20 +231,22 @@ npm login
 npm publish --access public
 ```
 
-
-GitHub Release:
+GitHub Release：
 
 ```bash
 git tag v0.1.1
 git push origin v0.1.1
 ```
 
-Pushing a `v*` tag runs the Release workflow and uploads the `.mcpb` file as a release asset.
-## MCPB 鎵撳寘
+推送 `v*` tag 后，Release workflow 会自动构建 `.mcpb` 并上传到 GitHub Release。
 
-`.mcpb` 鏄竴涓寘鍚湰鍦?MCP server 鍜?`manifest.json` 鐨?zip 鍖咃紝閫傚悎 Claude Desktop 绛夋敮鎸?MCPB 鐨勫鎴风涓€閿畨瑁呫€?
-鏈」鐩帹鑽愮敤 Node.js 鐗堟墦 MCPB锛屽洜涓?Claude Desktop 鍦?macOS 鍜?Windows 涓婅嚜甯?Node 杩愯鐜锛岀敤鎴蜂笉闇€瑕侀澶栧畨瑁?Python銆?
-鍏堟瀯寤?Node.js 鐗堬細
+## MCPB 打包
+
+`.mcpb` 是一个包含本地 MCP Server 和 `manifest.json` 的 zip 包，适合 Claude Desktop 等支持 MCPB 的客户端一键安装。
+
+本项目推荐用 Node.js 版打 MCPB，因为 Claude Desktop 在 macOS 和 Windows 上自带 Node 运行环境，用户不需要额外安装 Python。
+
+先构建 Node.js 版：
 
 ```bash
 cd node-mcp
@@ -242,26 +254,28 @@ npm install
 npm run build
 ```
 
-鐒跺悗鍥炲埌椤圭洰鏍圭洰褰曟墽琛岋細
+然后回到项目根目录执行：
 
 ```powershell
 .\scripts\build-mcpb.ps1
 ```
 
-鐢熸垚鏂囦欢锛?
+生成文件：
+
 ```text
 dist/lfwin-payment-mcp-0.1.1.mcpb
 ```
 
-MCPB 瀹夎鏃朵細鎻愮ず鐢ㄦ埛濉啓锛?
+MCPB 安装时会提示用户填写：
+
 - `Payment API Key`
 - `Payment Sign Key`
 
-杩欎袱涓€间細閫氳繃 `manifest.json` 鐨?`user_config` 娉ㄥ叆涓?`PAYMENT_API_KEY` 鍜?`PAYMENT_SIGN_KEY`锛屼笉浼氬啓姝诲湪鍖呴噷銆?
-## 瀹夊叏璇存槑
+这两个值会通过 [mcpb/manifest.json](mcpb/manifest.json) 的 `user_config` 注入为 `PAYMENT_API_KEY` 和 `PAYMENT_SIGN_KEY`，不会写死在包里。
 
-- 涓嶈鎶婄湡瀹炵殑 `PAYMENT_API_KEY`銆乣PAYMENT_SIGN_KEY` 鎻愪氦鍒?GitHub銆?
-- 寤鸿閫氳繃鐜鍙橀噺銆両DE Secret 鎴栨湇鍔″櫒瀵嗛挜绠＄悊绯荤粺娉ㄥ叆瀵嗛挜銆?
-- 鏈」鐩粯璁や娇鐢?`stdio` 鏂瑰紡浣滀负鏈湴 MCP 鏈嶅姟杩愯銆?
-- 濡傛灉瑕侀儴缃叉垚杩滅▼ MCP 鏈嶅姟锛岃鑷澧炲姞璁よ瘉銆佺鎴烽殧绂汇€佽闂帶鍒跺拰 Origin 鏍￠獙銆?
+## 安全说明
 
+- 不要把真实的 `PAYMENT_API_KEY`、`PAYMENT_SIGN_KEY` 提交到 GitHub。
+- 建议通过环境变量、IDE Secret 或服务器密钥管理系统注入密钥。
+- 本项目默认使用 `stdio` 方式作为本地 MCP 服务运行。
+- 如果要部署成远程 MCP 服务，请自行增加认证、租户隔离、访问控制和 Origin 校验。
