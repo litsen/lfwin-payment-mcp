@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "lfwin-payment-mcp": {
+      "command": "npx",
+      "args": ["-y", "@litsen/lfwin-payment-mcp"],
+      "env": {
+        "PAYMENT_API_KEY": "your_api_key_here",
+        "PAYMENT_SIGN_KEY": "your_sign_key_here"
+      }
+    }
+  }
+}

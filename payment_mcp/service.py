@@ -1,0 +1,171 @@
+from datetime import UTC, datetime, timedelta, timezone
+import uuid
+
+from payment_mcp.client import LFWinClient
+from payment_mcp.models import PaymentStatus
+from payment_mcp.qrcode_image import make_png_data_url
+
+
+CHINA_TZ = timezone(timedelta(hours=8))
+
+
+def parse_unix_seconds(value: object) -> str | None:
+    if value in (None, "", "0", 0):
+        return None
+    try:
+        return datetime.fromtimestamp(int(value), CHINA_TZ).strftime("%Y-%m-%d %H:%M:%S")
+    except (TypeError, ValueError, OSError):
+        return None
+
+
+def to_float(value: object) -> float | None:
+    if value in (None, ""):
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def map_refund_status(result: dict) -> PaymentStatus:
+    raw_status = str(result.get("status", ""))
+    refund_status = str(result.get("refund_status", ""))
+    is_refund = str(result.get("is_refund", ""))
+
+    if raw_status == "4001":
+        return PaymentStatus.REFUNDING
+    if raw_status in {"4000", "4002", "1002"} or refund_status == "2":
+        return PaymentStatus.FAILED
+    if raw_status == "10000" and (refund_status == "1" or is_refund == "2"):
+        return PaymentStatus.REFUNDED
+    if raw_status == "10000":
+        return PaymentStatus.REFUNDING
+    return PaymentStatus.PROCESSING
+
+
+def first_refund_record(result: dict) -> dict:
+    records = result.get("lists")
+    if isinstance(records, list) and records:
+        first = records[0]
+        if isinstance(first, dict):
+            return first
+    return result
+
+
+class PaymentService:
+    def __init__(self, client: LFWinClient) -> None:
+        self.client = client
+
+    async def create_payment_order(
+        self,
+        merchant_order_no: str,
+        amount: float,
+        currency: str = "CNY",
+        channel: str = "comm",
+        subject: str = "Payment order",
+        notify_url: str | None = None,
+    ) -> dict:
+        payload = {
+            "money": f"{amount:.2f}",
+            "nonce_str": uuid.uuid4().hex[:16],
+            "mch_orderid": merchant_order_no,
+            "notify_url": notify_url or "",
+        }
+        result = await self.client.create_cashier_order(payload)
+        pay_url = result.get("data")
+        pay_qrcode_image = make_png_data_url(str(pay_url)) if pay_url else None
+        return {
+            "success": result.get("status") == "10000",
+            "order_no": result.get("orderid", ""),
+            "merchant_order_no": merchant_order_no,
+            "amount": amount,
+            "currency": currency,
+            "status": PaymentStatus.PENDING.value,
+            "pay_url": pay_url,
+            "qrcode": pay_url,
+            "pay_qrcode_image": pay_qrcode_image,
+            "pay_qrcode_markdown": f"![Payment QR Code]({pay_qrcode_image})" if pay_qrcode_image else None,
+            "expire_time": (datetime.now(UTC) + timedelta(minutes=15)).astimezone(CHINA_TZ).strftime("%Y-%m-%d %H:%M:%S"),
+            "message": result.get("message"),
+            "raw_status": str(result.get("status", "")),
+        }
+
+    async def query_payment_order(self, order_no: str) -> dict:
+        payload = {
+            "service": "pay.comm.query_order",
+            "orderid": order_no,
+            "nonce_str": uuid.uuid4().hex[:16],
+        }
+        result = await self.client.query_order(payload)
+        paystatus = str(result.get("paystatus", "0"))
+        status = PaymentStatus.PENDING
+        if paystatus == "1":
+            status = PaymentStatus.SUCCESS
+        elif paystatus == "2":
+            status = PaymentStatus.FAILED
+        return {
+            "success": result.get("status") == "10000" and status == PaymentStatus.SUCCESS,
+            "order_no": result.get("orderid") or order_no,
+            "merchant_order_no": result.get("mch_orderid"),
+            "status": status.value,
+            "paid_amount": to_float(result.get("paymoney")) or 0,
+            "paid_time": parse_unix_seconds(result.get("paytime")),
+            "message": result.get("message"),
+            "raw_status": str(result.get("status", "")),
+            "raw_paystatus": paystatus,
+        }
+
+    async def refund_payment_order(
+        self,
+        order_no: str,
+        refund_amount: float,
+        reason: str,
+        mch_refund_no: str,
+    ) -> dict:
+        payload = {
+            "service": "pay.comm.refund_order",
+            "orderid": order_no,
+            "refundmoney": f"{refund_amount:.2f}",
+            "version": "4.0",
+            "nonce_str": uuid.uuid4().hex[:16],
+            "reason": reason,
+            "mch_refund_no": mch_refund_no,
+        }
+        result = await self.client.refund_order(payload)
+        status = map_refund_status(result)
+        return {
+            "success": str(result.get("status")) in {"10000", "4001"},
+            "order_no": result.get("orderid") or order_no,
+            "refund_no": result.get("refund_no"),
+            "mch_refund_no": result.get("mch_refund_no") or mch_refund_no,
+            "refund_amount": to_float(result.get("refundmoney")) or refund_amount,
+            "status": status.value,
+            "message": result.get("message"),
+            "raw_status": str(result.get("status", "")),
+        }
+
+    async def query_refund_status(self, order_no: str, mch_refund_no: str | None = None) -> dict:
+        payload = {
+            "service": "pay.comm.query_refund",
+            "orderid": order_no,
+            "version": "4.0",
+            "nonce_str": uuid.uuid4().hex[:16],
+        }
+        if mch_refund_no:
+            payload["mch_refund_no"] = mch_refund_no
+
+        result = await self.client.query_refund(payload)
+        record = first_refund_record(result)
+        status = map_refund_status({**result, **record})
+        raw_status = str(result.get("status", ""))
+        return {
+            "success": raw_status == "10000" and status == PaymentStatus.REFUNDED,
+            "order_no": record.get("orderid") or result.get("orderid") or order_no,
+            "refund_no": record.get("refund_no") or result.get("refund_no"),
+            "mch_refund_no": record.get("mch_refund_no") or result.get("mch_refund_no") or mch_refund_no,
+            "refund_amount": to_float(record.get("refundmoney")),
+            "status": status.value,
+            "refund_time": parse_unix_seconds(record.get("refundtime")),
+            "message": result.get("message"),
+            "raw_status": raw_status,
+        }

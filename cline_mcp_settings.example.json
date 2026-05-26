@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "payment-mcp": {
+      "command": "cmd",
+      "args": ["/c", "payment-mcp"],
+      "env": {
+        "PAYMENT_API_KEY": "your_api_key_here",
+        "PAYMENT_SIGN_KEY": "your_sign_key_here"
+      },
+      "disabled": false
+    }
+  }
+}

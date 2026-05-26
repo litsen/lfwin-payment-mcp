@@ -1,0 +1,16 @@
+.git
+.github
+.venv
+.pytest_cache
+build
+dist
+node_modules
+node-mcp/node_modules
+node-mcp/dist
+node-mcp/.npm-cache
+payment-mcp
+payment_mcp
+*.mcpb
+*.pyc
+__pycache__
+.env

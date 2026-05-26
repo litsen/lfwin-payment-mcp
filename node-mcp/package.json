@@ -1,0 +1,35 @@
+{
+  "name": "@litsen/lfwin-payment-mcp",
+  "version": "0.1.1",
+  "description": "LFWin payment MCP server for Cursor, Cline, and other MCP clients.",
+  "type": "module",
+  "bin": {
+    "lfwin-payment-mcp": "dist/index.js",
+    "payment-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "prepare": "npm run build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.13.0",
+    "qrcode": "^1.5.4",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/qrcode": "^1.5.5",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  }
+}

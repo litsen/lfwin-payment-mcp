@@ -1,0 +1,13 @@
+include README.md
+include .env.example
+recursive-include payment_mcp *.py
+exclude payment-mcp.cmd
+exclude cline_mcp_settings.example.json
+exclude 01_*.md
+exclude 02_*.md
+exclude 03_*.md
+exclude 05_*.md
+recursive-exclude payment-mcp *
+recursive-exclude .cursor *
+recursive-exclude __pycache__ *
+global-exclude *.py[cod]

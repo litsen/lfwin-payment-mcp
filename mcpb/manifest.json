@@ -1,0 +1,71 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/mcpb/main/schemas/mcpb-manifest-v0.4.schema.json",
+  "manifest_version": "0.4",
+  "name": "@litsen/lfwin-payment-mcp",
+  "display_name": "LFWin Payment MCP",
+  "version": "0.1.1",
+  "description": "LFWin payment MCP server for creating payment orders, querying payment status, creating refunds, and querying refund status.",
+  "author": {
+    "name": "Litsen",
+    "url": "https://github.com/litsen"
+  },
+  "homepage": "https://github.com/litsen/lfwin-payment-mcp",
+  "documentation": "https://github.com/litsen/lfwin-payment-mcp#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/litsen/lfwin-payment-mcp.git"
+  },
+  "server": {
+    "type": "node",
+    "entry_point": "node-mcp/dist/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/node-mcp/dist/index.js"],
+      "env": {
+        "PAYMENT_API_KEY": "${user_config.paymentApiKey}",
+        "PAYMENT_SIGN_KEY": "${user_config.paymentSignKey}"
+      }
+    }
+  },
+  "user_config": {
+    "paymentApiKey": {
+      "type": "string",
+      "title": "Payment API Key",
+      "description": "Your LFWin merchant API key.",
+      "required": true,
+      "sensitive": true
+    },
+    "paymentSignKey": {
+      "type": "string",
+      "title": "Payment Sign Key",
+      "description": "Your LFWin signing key.",
+      "required": true,
+      "sensitive": true
+    }
+  },
+  "tools": [
+    {
+      "name": "create_payment_order",
+      "description": "Create a cashier payment order and return payment link plus QR code data."
+    },
+    {
+      "name": "query_payment_order",
+      "description": "Query payment order status by platform order number."
+    },
+    {
+      "name": "refund_payment_order",
+      "description": "Create a refund request."
+    },
+    {
+      "name": "query_refund_status",
+      "description": "Query refund status."
+    }
+  ],
+  "compatibility": {
+    "platforms": ["darwin", "win32", "linux"],
+    "runtimes": {
+      "node": ">=18.0.0"
+    }
+  },
+  "keywords": ["mcp", "payment", "lfwin", "ai-agent", "cursor", "cline", "refund"]
+}

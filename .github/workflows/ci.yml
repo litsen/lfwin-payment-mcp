@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  node:
+    name: Node MCP
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: node-mcp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: node-mcp/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+  mcpb:
+    name: MCPB Package
+    runs-on: windows-latest
+    needs: node
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: node-mcp/package-lock.json
+
+      - name: Install dependencies
+        working-directory: node-mcp
+        run: npm ci
+
+      - name: Build Node MCP
+        working-directory: node-mcp
+        run: npm run build
+
+      - name: Build MCPB
+        shell: pwsh
+        run: .\scripts\build-mcpb.ps1 -ZipFallbackOnly
+
+      - name: Upload MCPB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: lfwin-payment-mcp-mcpb
+          path: dist/*.mcpb

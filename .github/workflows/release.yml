@@ -1,0 +1,41 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build Release Assets
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: node-mcp/package-lock.json
+
+      - name: Install dependencies
+        working-directory: node-mcp
+        run: npm ci
+
+      - name: Build Node MCP
+        working-directory: node-mcp
+        run: npm run build
+
+      - name: Build MCPB
+        shell: pwsh
+        run: .\scripts\build-mcpb.ps1 -ZipFallbackOnly
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.mcpb

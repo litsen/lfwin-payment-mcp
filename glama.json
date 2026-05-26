@@ -1,0 +1,34 @@
+{
+  "$schema": "https://glama.ai/mcp/schemas/server.json",
+  "name": "lfwin-payment-mcp",
+  "displayName": "LFWin Payment MCP",
+  "description": "Payment MCP server for AI agents. Create payment orders, query payment status, create refunds, and query refund status.",
+  "homepage": "https://github.com/litsen/lfwin-payment-mcp",
+  "repository": "https://github.com/litsen/lfwin-payment-mcp",
+  "license": "MIT",
+  "category": "payments",
+  "tags": ["payment", "refund", "mcp", "ai-agent", "cursor", "cline"],
+  "server": {
+    "type": "stdio",
+    "command": "npx",
+    "args": ["-y", "@litsen/lfwin-payment-mcp"],
+    "env": {
+      "PAYMENT_API_KEY": {
+        "description": "LFWin merchant API key",
+        "required": true,
+        "sensitive": true
+      },
+      "PAYMENT_SIGN_KEY": {
+        "description": "LFWin signing key",
+        "required": true,
+        "sensitive": true
+      }
+    }
+  },
+  "tools": [
+    "create_payment_order",
+    "query_payment_order",
+    "refund_payment_order",
+    "query_refund_status"
+  ]
+}
