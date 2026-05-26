@@ -20,9 +20,6 @@ def get_service() -> PaymentService:
 async def create_payment_order(
     merchant_order_no: str,
     amount: float,
-    currency: str = "CNY",
-    channel: str = "comm",
-    subject: str = "Payment order",
     notify_url: str | None = None,
 ) -> dict:
     """Create a payment order. The merchant order number must be unique. Amount is in yuan."""
@@ -30,9 +27,6 @@ async def create_payment_order(
     return await service.create_payment_order(
         merchant_order_no=merchant_order_no,
         amount=amount,
-        currency=currency,
-        channel=channel,
-        subject=subject,
         notify_url=notify_url,
     )
 

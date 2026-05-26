@@ -40,10 +40,12 @@ PAYMENT_SIGN_KEY=your_sign_key_here
 
 默认配置：
 
-- 接口域名：`http://api2.lfwin.com`
+- 接口域名：`https://api2.lfwin.com`
 - 签名方式：`MD5`
 
 通常不需要额外配置接口域名和签名方式。
+
+`PAYMENT_SIGN_KEY` 只在 MCP Server 本地生成请求签名时使用，不会作为请求字段发送到 LFWin 接口，也不会出现在 MCP 工具返回结果中。通过 MCPB、Glama 等支持敏感字段的安装方式配置时，该字段已标记为 sensitive。
 
 ## 安装方式一：Node.js 版
 
@@ -171,9 +173,6 @@ Python 版：
 
 - `merchant_order_no`：商户订单号，必须唯一
 - `amount`：支付金额，单位为元
-<!-- - `currency`：币种，默认 `CNY`
-- `channel`：支付渠道，默认 `comm`
-- `subject`：订单说明 -->
 - `notify_url`：异步通知地址，可选
 
 返回结果中的 `pay_qrcode_markdown` 可以直接让 AI 输出给用户，用于扫码支付。
@@ -271,7 +270,7 @@ MCPB 安装时会提示用户填写：
 - `Payment API Key`
 - `Payment Sign Key`
 
-这两个值会通过 [mcpb/manifest.json](mcpb/manifest.json) 的 `user_config` 注入为 `PAYMENT_API_KEY` 和 `PAYMENT_SIGN_KEY`，不会写死在包里。
+这两个值会通过 [mcpb/manifest.json](mcpb/manifest.json) 的 `user_config` 注入为 `PAYMENT_API_KEY` 和 `PAYMENT_SIGN_KEY`，不会写死在包里。其中 `Payment Sign Key` 已标记为敏感字段，只用于本地签名。
 
 ## 安全说明
 

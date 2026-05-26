@@ -16,7 +16,7 @@ function requiredEnv(name: string): string {
 
 export function loadSettings(): PaymentSettings {
   return {
-    apiBaseUrl: process.env.PAYMENT_API_BASE_URL ?? "http://api2.lfwin.com",
+    apiBaseUrl: process.env.PAYMENT_API_BASE_URL ?? "https://api2.lfwin.com",
     apiKey: requiredEnv("PAYMENT_API_KEY"),
     signKey: requiredEnv("PAYMENT_SIGN_KEY"),
     signType: process.env.PAYMENT_SIGN_TYPE ?? "MD5",

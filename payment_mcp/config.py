@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class PaymentSettings(BaseSettings):
-    api_base_url: str = "http://api2.lfwin.com"
+    api_base_url: str = "https://api2.lfwin.com"
     api_key: str = Field(min_length=1)
     sign_key: str = Field(min_length=1)
     sign_type: str = "MD5"

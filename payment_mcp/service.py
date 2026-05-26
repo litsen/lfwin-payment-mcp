@@ -60,9 +60,6 @@ class PaymentService:
         self,
         merchant_order_no: str,
         amount: float,
-        currency: str = "CNY",
-        channel: str = "comm",
-        subject: str = "Payment order",
         notify_url: str | None = None,
     ) -> dict:
         payload = {
@@ -79,7 +76,6 @@ class PaymentService:
             "order_no": result.get("orderid", ""),
             "merchant_order_no": merchant_order_no,
             "amount": amount,
-            "currency": currency,
             "status": PaymentStatus.PENDING.value,
             "pay_url": pay_url,
             "qrcode": pay_url,

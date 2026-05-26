@@ -85,9 +85,6 @@ export class PaymentService {
   async createPaymentOrder(input: {
     merchantOrderNo: string;
     amount: number;
-    currency?: string;
-    channel?: string;
-    subject?: string;
     notifyUrl?: string;
   }): Promise<Record<string, unknown>> {
     const result = await this.client.createCashierOrder({
@@ -105,7 +102,6 @@ export class PaymentService {
       order_no: valueAsString(result.orderid) ?? "",
       merchant_order_no: input.merchantOrderNo,
       amount: input.amount,
-      currency: input.currency ?? "CNY",
       status: PaymentStatus.Pending,
       pay_url: payUrl,
       qrcode: payUrl,

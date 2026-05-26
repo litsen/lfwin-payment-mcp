@@ -61,9 +61,6 @@ server.tool(
   {
     merchant_order_no: z.string().min(1),
     amount: z.number().positive(),
-    currency: z.string().default("CNY"),
-    channel: z.string().default("comm"),
-    subject: z.string().default("Payment order"),
     notify_url: z.string().url().optional(),
   },
   async (input) =>
@@ -71,9 +68,6 @@ server.tool(
       await getService().createPaymentOrder({
         merchantOrderNo: input.merchant_order_no,
         amount: input.amount,
-        currency: input.currency,
-        channel: input.channel,
-        subject: input.subject,
         notifyUrl: input.notify_url,
       }),
     ),
