@@ -11,7 +11,7 @@ import { PaymentService } from "./service.js";
 
 const server = new McpServer({
   name: "lfwin-payment-mcp",
-  version: "0.1.0",
+  version: "0.1.3",
 });
 
 let service: PaymentService | undefined;
@@ -57,7 +57,11 @@ function paymentOrderResult(value: Record<string, unknown>) {
 
 server.tool(
   "create_payment_order",
-  "Create a cashier payment order. Amount is in yuan. The merchant order number must be unique.",
+  [
+    "Create a cashier payment order. Amount is in yuan and merchant_order_no is the merchant's own unique order number.",
+    "After success, display pay_qrcode_markdown or the returned image content block as the QR code.",
+    "Save order_no/query_order_no as the platform order number for later query and refund tools.",
+  ].join(" "),
   {
     merchant_order_no: z.string().min(1),
     amount: z.number().positive(),
@@ -75,7 +79,10 @@ server.tool(
 
 server.tool(
   "query_payment_order",
-  "Query payment order status by the platform order number.",
+  [
+    "Query payment order status by the platform order_no/orderid returned by create_payment_order.",
+    "Do not pass merchant_order_no here; LFWin merchant-order queries require merchant_order_no plus order_time and are not exposed by this tool.",
+  ].join(" "),
   {
     order_no: z.string().min(1),
   },
@@ -84,7 +91,11 @@ server.tool(
 
 server.tool(
   "refund_payment_order",
-  "Create a refund request. mch_refund_no is the merchant refund number and must be unique.",
+  [
+    "Create a refund request by platform order_no/orderid.",
+    "mch_refund_no is the merchant refund number and must be unique per refund.",
+    "Successful submission means accepted/processing, not final refund success; call query_refund_status to confirm.",
+  ].join(" "),
   {
     order_no: z.string().min(1),
     refund_amount: z.number().positive(),
@@ -104,7 +115,11 @@ server.tool(
 
 server.tool(
   "query_refund_status",
-  "Query refund status. Optionally pass mch_refund_no to locate a specific refund.",
+  [
+    "Query refund status by platform order_no/orderid.",
+    "Pass mch_refund_no when available to locate a specific partial refund.",
+    "Only REFUNDED is final success; REFUNDING/PROCESSING means query again later.",
+  ].join(" "),
   {
     order_no: z.string().min(1),
     mch_refund_no: z.string().min(1).optional(),

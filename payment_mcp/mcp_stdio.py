@@ -22,7 +22,13 @@ async def create_payment_order(
     amount: float,
     notify_url: str | None = None,
 ) -> dict:
-    """Create a payment order. The merchant order number must be unique. Amount is in yuan."""
+    """Create a cashier payment order.
+
+    merchant_order_no is the merchant's own unique order number. After success,
+    show pay_qrcode_markdown or pay_qrcode_image to the user for QR payment and
+    save order_no/query_order_no as the platform order number for later query
+    and refund tools.
+    """
     service = get_service()
     return await service.create_payment_order(
         merchant_order_no=merchant_order_no,
@@ -33,7 +39,11 @@ async def create_payment_order(
 
 @mcp.tool()
 async def query_payment_order(order_no: str) -> dict:
-    """Query payment order status by the platform order number."""
+    """Query payment status by platform order_no/orderid returned by create_payment_order.
+
+    Do not pass merchant_order_no here. The LFWin merchant-order query path needs
+    merchant_order_no plus order_time and is not exposed by this tool.
+    """
     service = get_service()
     return await service.query_payment_order(order_no=order_no)
 
@@ -45,7 +55,12 @@ async def refund_payment_order(
     reason: str,
     mch_refund_no: str,
 ) -> dict:
-    """Create a refund request. mch_refund_no is the merchant refund number and must be unique."""
+    """Create a refund request by platform order_no/orderid.
+
+    mch_refund_no is the merchant refund number and must be unique per refund.
+    A successful submission means accepted/processing, not final refund success;
+    call query_refund_status with order_no and mch_refund_no to confirm.
+    """
     service = get_service()
     return await service.refund_payment_order(
         order_no=order_no,
@@ -57,7 +72,11 @@ async def refund_payment_order(
 
 @mcp.tool()
 async def query_refund_status(order_no: str, mch_refund_no: str | None = None) -> dict:
-    """Query refund status. Optionally pass mch_refund_no to locate a specific refund."""
+    """Query refund status by platform order_no/orderid.
+
+    Pass mch_refund_no when available to locate a specific partial refund. Only
+    REFUNDED is final success; REFUNDING/PROCESSING means query again later.
+    """
     service = get_service()
     return await service.query_refund_status(order_no=order_no, mch_refund_no=mch_refund_no)
 

@@ -2,7 +2,7 @@
   "$schema": "https://glama.ai/mcp/schemas/server.json",
   "name": "lfwin-payment-mcp",
   "displayName": "LFWin Payment MCP",
-  "description": "Payment MCP server for AI agents. Create payment orders, query payment status, create refunds, and query refund status.",
+  "description": "Payment MCP server for AI agents. Create cashier payment orders, display QR-code fields, query by platform order_no/orderid, create refund requests, and query actual refund status.",
   "homepage": "https://github.com/litsen/lfwin-payment-mcp",
   "repository": "https://github.com/litsen/lfwin-payment-mcp",
   "license": "MIT",
@@ -26,9 +26,21 @@
     }
   },
   "tools": [
-    "create_payment_order",
-    "query_payment_order",
-    "refund_payment_order",
-    "query_refund_status"
+    {
+      "name": "create_payment_order",
+      "description": "Create a cashier payment order. merchant_order_no is the merchant mch_orderid for business correlation. Save the returned order_no/platform orderid for later query/refund calls. Display pay_qrcode_markdown in Markdown clients, the image content block when supported, pay_qrcode_image for frontend rendering, or pay_url/qrcode as fallback."
+    },
+    {
+      "name": "query_payment_order",
+      "description": "Query payment status by the platform order_no/orderid returned by create_payment_order. Do not pass merchant_order_no; merchant-order queries require order_time and are outside this tool's parameter contract."
+    },
+    {
+      "name": "refund_payment_order",
+      "description": "Create a refund request by platform order_no/orderid. Use a unique mch_refund_no for each refund attempt or partial refund. status 4001 or 10000 means accepted or processing, not refund success; call query_refund_status next."
+    },
+    {
+      "name": "query_refund_status",
+      "description": "Query actual refund status by platform order_no/orderid, and pass the same mch_refund_no when available. status=4001 is processing; status=10000 plus refund_status=1 is success; status=10000 plus refund_status=2 is failed."
+    }
   ]
 }

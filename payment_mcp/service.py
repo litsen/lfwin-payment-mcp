@@ -27,6 +27,12 @@ def to_float(value: object) -> float | None:
         return None
 
 
+def to_str(value: object) -> str | None:
+    if value is None:
+        return None
+    return str(value)
+
+
 def map_refund_status(result: dict) -> PaymentStatus:
     raw_status = str(result.get("status", ""))
     refund_status = str(result.get("refund_status", ""))
@@ -52,6 +58,16 @@ def first_refund_record(result: dict) -> dict:
     return result
 
 
+def payment_usage_instruction(order_no: object) -> str:
+    return (
+        "Show pay_qrcode_markdown to the user when Markdown is supported; otherwise render "
+        "pay_qrcode_image as an image, or use pay_url/qrcode as the payment link/QR content. "
+        f"Store order_no ({order_no}) as the platform order number for all later payment query "
+        "and refund tools. Do not use merchant_order_no for query_payment_order unless a "
+        "merchant-order query tool explicitly asks for merchant_order_no plus order_time."
+    )
+
+
 class PaymentService:
     def __init__(self, client: LFWinClient) -> None:
         self.client = client
@@ -71,9 +87,12 @@ class PaymentService:
         result = await self.client.create_cashier_order(payload)
         pay_url = result.get("data")
         pay_qrcode_image = make_png_data_url(str(pay_url)) if pay_url else None
+        order_no = to_str(result.get("orderid")) or ""
         return {
             "success": result.get("status") == "10000",
-            "order_no": result.get("orderid", ""),
+            "order_no": order_no,
+            "platform_order_no": order_no,
+            "query_order_no": order_no,
             "merchant_order_no": merchant_order_no,
             "amount": amount,
             "status": PaymentStatus.PENDING.value,
@@ -82,6 +101,8 @@ class PaymentService:
             "pay_qrcode_image": pay_qrcode_image,
             "pay_qrcode_markdown": f"![Payment QR Code]({pay_qrcode_image})" if pay_qrcode_image else None,
             "expire_time": (datetime.now(UTC) + timedelta(minutes=15)).astimezone(CHINA_TZ).strftime("%Y-%m-%d %H:%M:%S"),
+            "display_instruction": payment_usage_instruction(order_no),
+            "next_action": "Display the QR code/payment link, then poll query_payment_order with query_order_no/order_no.",
             "message": result.get("message"),
             "raw_status": str(result.get("status", "")),
         }
@@ -101,11 +122,14 @@ class PaymentService:
             status = PaymentStatus.FAILED
         return {
             "success": result.get("status") == "10000" and status == PaymentStatus.SUCCESS,
-            "order_no": result.get("orderid") or order_no,
-            "merchant_order_no": result.get("mch_orderid"),
+            "order_no": to_str(result.get("orderid")) or order_no,
+            "platform_order_no": to_str(result.get("orderid")) or order_no,
+            "query_order_no": to_str(result.get("orderid")) or order_no,
+            "merchant_order_no": to_str(result.get("mch_orderid")),
             "status": status.value,
             "paid_amount": to_float(result.get("paymoney")) or 0,
             "paid_time": parse_unix_seconds(result.get("paytime")),
+            "query_instruction": "This result was queried by platform order_no/orderid. Treat paystatus=1 as paid, paystatus=2 as failed, otherwise keep pending.",
             "message": result.get("message"),
             "raw_status": str(result.get("status", "")),
             "raw_paystatus": paystatus,
@@ -131,11 +155,14 @@ class PaymentService:
         status = map_refund_status(result)
         return {
             "success": str(result.get("status")) in {"10000", "4001"},
-            "order_no": result.get("orderid") or order_no,
-            "refund_no": result.get("refund_no"),
-            "mch_refund_no": result.get("mch_refund_no") or mch_refund_no,
+            "order_no": to_str(result.get("orderid")) or order_no,
+            "platform_order_no": to_str(result.get("orderid")) or order_no,
+            "query_order_no": to_str(result.get("orderid")) or order_no,
+            "refund_no": to_str(result.get("refund_no")),
+            "mch_refund_no": to_str(result.get("mch_refund_no")) or mch_refund_no,
             "refund_amount": to_float(result.get("refundmoney")) or refund_amount,
             "status": status.value,
+            "next_action": "Refund submission accepted only means processing; call query_refund_status with order_no and mch_refund_no to confirm the final result.",
             "message": result.get("message"),
             "raw_status": str(result.get("status", "")),
         }
@@ -156,12 +183,15 @@ class PaymentService:
         raw_status = str(result.get("status", ""))
         return {
             "success": raw_status == "10000" and status == PaymentStatus.REFUNDED,
-            "order_no": record.get("orderid") or result.get("orderid") or order_no,
-            "refund_no": record.get("refund_no") or result.get("refund_no"),
-            "mch_refund_no": record.get("mch_refund_no") or result.get("mch_refund_no") or mch_refund_no,
+            "order_no": to_str(record.get("orderid")) or to_str(result.get("orderid")) or order_no,
+            "platform_order_no": to_str(record.get("orderid")) or to_str(result.get("orderid")) or order_no,
+            "query_order_no": to_str(record.get("orderid")) or to_str(result.get("orderid")) or order_no,
+            "refund_no": to_str(record.get("refund_no")) or to_str(result.get("refund_no")),
+            "mch_refund_no": to_str(record.get("mch_refund_no")) or to_str(result.get("mch_refund_no")) or mch_refund_no,
             "refund_amount": to_float(record.get("refundmoney")),
             "status": status.value,
             "refund_time": parse_unix_seconds(record.get("refundtime")),
+            "query_instruction": "REFUNDED is final success, FAILED is final failure, and REFUNDING/PROCESSING should be queried again later.",
             "message": result.get("message"),
             "raw_status": raw_status,
         }

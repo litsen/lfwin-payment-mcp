@@ -79,6 +79,15 @@ function firstRefundRecord(result: LFWinResponse): LFWinResponse {
   return result;
 }
 
+function paymentUsageInstruction(orderNo: unknown): string {
+  return [
+    "Show pay_qrcode_markdown to the user when Markdown is supported; otherwise render pay_qrcode_image as an image,",
+    "or use pay_url/qrcode as the payment link/QR content.",
+    `Store order_no (${valueAsString(orderNo) ?? ""}) as the platform order number for all later payment query and refund tools.`,
+    "Do not use merchant_order_no for query_payment_order unless a merchant-order query tool explicitly asks for merchant_order_no plus order_time.",
+  ].join(" ");
+}
+
 export class PaymentService {
   constructor(private readonly client: LFWinClient) {}
 
@@ -96,10 +105,13 @@ export class PaymentService {
 
     const payUrl = valueAsString(result.data);
     const payQrcodeImage = payUrl ? await makePngDataUrl(payUrl) : undefined;
+    const orderNo = valueAsString(result.orderid) ?? "";
 
     return {
       success: result.status === "10000",
-      order_no: valueAsString(result.orderid) ?? "",
+      order_no: orderNo,
+      platform_order_no: orderNo,
+      query_order_no: orderNo,
       merchant_order_no: input.merchantOrderNo,
       amount: input.amount,
       status: PaymentStatus.Pending,
@@ -119,6 +131,8 @@ export class PaymentService {
       })
         .format(new Date(Date.now() + 15 * 60 * 1000))
         .replaceAll("/", "-"),
+      display_instruction: paymentUsageInstruction(orderNo),
+      next_action: "Display the QR code/payment link, then poll query_payment_order with query_order_no/order_no.",
       message: valueAsString(result.message),
       raw_status: valueAsString(result.status) ?? "",
     };
@@ -142,10 +156,14 @@ export class PaymentService {
     return {
       success: result.status === "10000" && status === PaymentStatus.Success,
       order_no: valueAsString(result.orderid) ?? orderNo,
+      platform_order_no: valueAsString(result.orderid) ?? orderNo,
+      query_order_no: valueAsString(result.orderid) ?? orderNo,
       merchant_order_no: valueAsString(result.mch_orderid),
       status,
       paid_amount: valueAsNumber(result.paymoney) ?? 0,
       paid_time: parseUnixSeconds(result.paytime),
+      query_instruction:
+        "This result was queried by platform order_no/orderid. Treat paystatus=1 as paid, paystatus=2 as failed, otherwise keep pending.",
       message: valueAsString(result.message),
       raw_status: valueAsString(result.status) ?? "",
       raw_paystatus: payStatus,
@@ -172,10 +190,14 @@ export class PaymentService {
     return {
       success: ["10000", "4001"].includes(valueAsString(result.status) ?? ""),
       order_no: valueAsString(result.orderid) ?? input.orderNo,
+      platform_order_no: valueAsString(result.orderid) ?? input.orderNo,
+      query_order_no: valueAsString(result.orderid) ?? input.orderNo,
       refund_no: valueAsString(result.refund_no),
       mch_refund_no: valueAsString(result.mch_refund_no) ?? input.mchRefundNo,
       refund_amount: valueAsNumber(result.refundmoney) ?? input.refundAmount,
       status,
+      next_action:
+        "Refund submission accepted only means processing; call query_refund_status with order_no and mch_refund_no to confirm the final result.",
       message: valueAsString(result.message),
       raw_status: valueAsString(result.status) ?? "",
     };
@@ -200,11 +222,15 @@ export class PaymentService {
     return {
       success: rawStatus === "10000" && status === PaymentStatus.Refunded,
       order_no: valueAsString(record.orderid) ?? valueAsString(result.orderid) ?? orderNo,
+      platform_order_no: valueAsString(record.orderid) ?? valueAsString(result.orderid) ?? orderNo,
+      query_order_no: valueAsString(record.orderid) ?? valueAsString(result.orderid) ?? orderNo,
       refund_no: valueAsString(record.refund_no) ?? valueAsString(result.refund_no),
       mch_refund_no: valueAsString(record.mch_refund_no) ?? valueAsString(result.mch_refund_no) ?? mchRefundNo,
       refund_amount: valueAsNumber(record.refundmoney),
       status,
       refund_time: parseUnixSeconds(record.refundtime),
+      query_instruction:
+        "REFUNDED is final success, FAILED is final failure, and REFUNDING/PROCESSING should be queried again later.",
       message: valueAsString(result.message),
       raw_status: rawStatus,
     };

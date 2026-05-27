@@ -3,8 +3,8 @@
   "manifest_version": "0.4",
   "name": "@litsen/lfwin-payment-mcp",
   "display_name": "LFWin Payment MCP",
-  "version": "0.1.1",
-  "description": "LFWin payment MCP server for creating payment orders, querying payment status, creating refunds, and querying refund status.",
+  "version": "0.1.3",
+  "description": "LFWin payment MCP server for AI agents. Creates cashier payment orders, returns QR-code display fields, queries by platform order_no/orderid, creates refund requests, and queries actual refund status.",
   "author": {
     "name": "Litsen",
     "url": "https://github.com/litsen"
@@ -46,19 +46,19 @@
   "tools": [
     {
       "name": "create_payment_order",
-      "description": "Create a cashier payment order and return payment link plus QR code data."
+      "description": "Create a cashier payment order. The input merchant_order_no is the merchant mch_orderid for business correlation only. On success, save the returned order_no, which is the platform orderid for later query/refund calls. Display payment using pay_qrcode_markdown when Markdown is supported, the image content block when supported, pay_qrcode_image for frontend image rendering, or pay_url/qrcode as fallback."
     },
     {
       "name": "query_payment_order",
-      "description": "Query payment order status by platform order number."
+      "description": "Query payment order status by platform order_no/orderid returned by create_payment_order. Do not pass merchant_order_no here; the underlying merchant-order query requires order_time and is not this tool's parameter contract."
     },
     {
       "name": "refund_payment_order",
-      "description": "Create a refund request."
+      "description": "Create a refund request by platform order_no/orderid returned by create_payment_order. Do not pass merchant_order_no. Use a unique mch_refund_no for each refund attempt, especially for multiple partial refunds. A response status of 4001 or 10000 means the refund request was accepted or is processing, not that the refund succeeded; call query_refund_status next."
     },
     {
       "name": "query_refund_status",
-      "description": "Query refund status."
+      "description": "Query actual refund status by platform order_no/orderid. If mch_refund_no was used when creating the refund, pass the same value to locate the refund. status=4001 means processing; status=10000 with refund_status=1 means success; status=10000 with refund_status=2 means failed."
     }
   ],
   "compatibility": {
