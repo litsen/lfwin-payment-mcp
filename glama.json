@@ -1,5 +1,6 @@
 {
   "$schema": "https://glama.ai/mcp/schemas/server.json",
+  "maintainers": ["litsen"],
   "name": "lfwin-payment-mcp",
   "displayName": "LFWin Payment MCP",
   "description": "Payment MCP server for AI agents. Create cashier payment orders, display QR-code fields, query by platform order_no/orderid, create refund requests, and query actual refund status.",
