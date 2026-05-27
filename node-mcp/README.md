@@ -22,14 +22,16 @@ Node.js 版还会在 MCP 工具结果中额外返回 `type: "image"` 的 PNG 内
 
 ### 下单后的二维码展示
 
-`create_payment_order` 调用成功后，统一收银台接口原始返回中的 `data` 表示支付跳转 URL 或支付参数。本 Node.js MCP 服务会把它标准化为 `pay_url`，并同时提供二维码字段。AI Agent 应按客户端能力选择展示方式：
+`create_payment_order` 调用成功后会返回支付链接，本 Node.js MCP 服务会把它标准化为 `pay_url`，并同时提供二维码字段。
+
+AI Agent 应按客户端能力选择展示方式：
 
 - 支持 Markdown 的对话窗口：优先直接输出 `pay_qrcode_markdown`。
 - 支持 MCP 图片内容块的客户端：工具结果里会带 `type: "image"` 的 PNG 内容块，可直接展示。
 - 需要前端自行渲染图片：使用 `pay_qrcode_image`，这是 `data:image/png;base64,...` 格式。
 - 需要跳转支付或自行生成二维码：使用 `pay_url`；`qrcode` 与 `pay_url` 相同，仅作为兼容字段。
 
-不要只告诉用户“已创建订单”而不展示二维码或支付链接。面向用户时应展示二维码，并保留 `pay_url` 作为扫码失败时的备用链接。
+不要只告诉用户“已创建订单”而不展示二维码或支付链接。面向用户时应展示二维码，并保留 `pay_url` 作为图片展示失败时的备用链接。
 
 ### 订单号使用规则
 
@@ -126,17 +128,4 @@ PAYMENT_REQUEST_TIMEOUT_MS=15000
 
 ## 开发
 
-```bash
-npm install
-npm run build
-npm start
-```
-
-## 发布
-
-```bash
-npm login
-npm publish --access public
-```
-
-发布后用户可以直接通过 `npx -y @litsen/lfwin-payment-mcp` 使用。
+用户可以直接通过 `npx -y @litsen/lfwin-payment-mcp` 使用。
