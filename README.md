@@ -321,3 +321,15 @@ MCPB 安装时会提示用户填写：
 - 建议通过环境变量、IDE Secret 或服务器密钥管理系统注入密钥。
 - 本项目默认使用 `stdio` 方式作为本地 MCP 服务运行。
 - 如果要部署成远程 MCP 服务，请自行增加认证、租户隔离、访问控制和 Origin 校验。
+
+## 演示示例
+Cursor安装后，可选择启用哪些能力
+<img width="973" height="302" alt="image" src="https://github.com/user-attachments/assets/da186c6c-e7dc-4c93-bf2d-234efe1b51a3" />
+
+智能体调用时会自动生成对应的支付订单，可引导用户扫码完成支付
+
+**发起支付：**
+<img width="999" height="883" alt="image" src="https://github.com/user-attachments/assets/8dbae19e-d421-479a-885e-eedd386ab8d1" />
+
+**发起退款：**
+<img width="975" height="767" alt="image" src="https://github.com/user-attachments/assets/f1673711-dd41-4be1-838b-6f2c597b8bc6" />
