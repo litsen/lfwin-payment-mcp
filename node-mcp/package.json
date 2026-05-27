@@ -2,6 +2,7 @@
   "name": "@litsen/lfwin-payment-mcp",
   "version": "0.1.3",
   "description": "LFWin payment MCP server for Cursor, Cline, and other MCP clients.",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "lfwin-payment-mcp": "dist/index.js",
@@ -9,7 +10,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc",
