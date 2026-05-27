@@ -1,5 +1,5 @@
 param(
-    [string]$OutputName = "lfwin-payment-mcp-0.1.1.mcpb",
+    [string]$OutputName = "",
     [switch]$ZipFallbackOnly
 )
 
@@ -10,6 +10,11 @@ $stage = Join-Path $root "build\mcpb"
 $nodeProject = Join-Path $root "node-mcp"
 $dist = Join-Path $nodeProject "dist"
 $nodeModules = Join-Path $nodeProject "node_modules"
+$manifest = Get-Content -LiteralPath (Join-Path $root "mcpb\manifest.json") -Raw | ConvertFrom-Json
+
+if (-not $OutputName) {
+    $OutputName = "lfwin-payment-mcp-$($manifest.version).mcpb"
+}
 
 if (-not (Test-Path $dist)) {
     throw "node-mcp/dist not found. Run: cd node-mcp; npm install; npm run build"
