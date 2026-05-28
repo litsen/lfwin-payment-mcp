@@ -4,7 +4,7 @@ from base64 import b64decode
 import pytest
 
 from payment_mcp.models import PaymentStatus
-from payment_mcp.service import PaymentService, map_refund_status
+from payment_mcp.service import PaymentService, extract_payment_target, map_refund_status
 
 
 class FakeClient:
@@ -63,6 +63,52 @@ def test_create_payment_order_returns_display_and_platform_order_hints() -> None
         assert "Do not use merchant_order_no" in str(result["display_instruction"])
 
     asyncio.run(run())
+
+
+def test_create_payment_order_extracts_url_from_data_object() -> None:
+    async def run() -> None:
+        client = FakeClient(
+            {
+                "create_cashier_order": {
+                    "status": "10000",
+                    "orderid": "PLAT-OBJECT",
+                    "data": {
+                        "orderid": "PLAT-OBJECT",
+                        "payUrl": "https://pay.example.test/cashier/object",
+                    },
+                    "message": "ok",
+                }
+            }
+        )
+        service = PaymentService(client)  # type: ignore[arg-type]
+
+        result = await service.create_payment_order("MCH-OBJECT", 9.9)
+
+        assert result["pay_url"] == "https://pay.example.test/cashier/object"
+        assert result["qrcode"] == "https://pay.example.test/cashier/object"
+        assert "[object Object]" not in str(result["pay_qrcode_markdown"])
+        assert b64decode(str(result["pay_qrcode_base64"]))[:8] == b"\x89PNG\r\n\x1a\n"
+        assert result["raw_payment_data"] == {
+            "orderid": "PLAT-OBJECT",
+            "payUrl": "https://pay.example.test/cashier/object",
+        }
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("https://pay.example.test/direct", "https://pay.example.test/direct"),
+        ({"url": "https://pay.example.test/url"}, "https://pay.example.test/url"),
+        ({"qrcode": "weixin://wxpay/bizpayurl?pr=test"}, "weixin://wxpay/bizpayurl?pr=test"),
+        ({"data": {"code_url": "https://pay.example.test/nested"}}, "https://pay.example.test/nested"),
+        ("[object Object]", None),
+        ({}, None),
+    ],
+)
+def test_extract_payment_target(raw: object, expected: str | None) -> None:
+    assert extract_payment_target(raw) == expected
 
 
 def test_query_payment_order_uses_platform_orderid_payload_and_aliases() -> None:

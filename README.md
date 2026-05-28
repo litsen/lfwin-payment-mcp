@@ -37,7 +37,7 @@ Node.js 版还会在 MCP 工具结果中额外返回 `type: "image"` 的 PNG 内
 
 ### 下单后的二维码展示
 
-`create_payment_order` 调用成功后，统一收银台接口原始返回中的 `data` 表示支付跳转 URL 或支付参数。本 MCP 服务会把它标准化为 `pay_url`，并同时提供二维码字段。AI Agent 应按客户端能力选择展示方式：
+`create_payment_order` 调用成功后，统一收银台接口原始返回中的 `data` 表示支付跳转 URL 或支付参数。`data` 可能是字符串，也可能是包含 `payUrl`、`url`、`qrcode`、`code_url` 等字段的对象。本 MCP 服务会把它标准化为字符串 `pay_url`，并同时提供二维码字段，避免把对象错误展示为 `[object Object]`。AI Agent 应按客户端能力选择展示方式：
 
 - 支持 Markdown 的对话窗口：优先直接输出 `pay_qrcode_markdown`。
 - 支持 MCP 图片内容块的客户端：Node.js 版工具结果里会带 `type: "image"` 的 PNG 内容块，可直接展示。
@@ -321,8 +321,8 @@ npm publish --access public
 GitHub Release：
 
 ```bash
-git tag v0.1.4
-git push origin v0.1.4
+git tag v0.1.5
+git push origin v0.1.5
 ```
 
 推送 `v*` tag 后，Release workflow 会自动构建 `.mcpb` 并上传到 GitHub Release。
@@ -350,7 +350,7 @@ npm run build
 生成文件：
 
 ```text
-dist/lfwin-payment-mcp-0.1.4.mcpb
+dist/lfwin-payment-mcp-0.1.5.mcpb
 ```
 
 MCPB 安装时会提示用户填写：

@@ -25,7 +25,7 @@ Node.js 版还会在 MCP 工具结果中额外返回 `type: "image"` 的 PNG 内
 
 ### 下单后的二维码展示
 
-`create_payment_order` 调用成功后会返回支付链接，本 Node.js MCP 服务会把它标准化为 `pay_url`，并同时提供二维码字段。
+`create_payment_order` 调用成功后会返回支付链接。统一收银台接口原始返回中的 `data` 可能是字符串，也可能是包含 `payUrl`、`url`、`qrcode`、`code_url` 等字段的对象。本 Node.js MCP 服务会把它标准化为字符串 `pay_url`，并同时提供二维码字段，避免把对象错误展示为 `[object Object]`。
 
 AI Agent 应按客户端能力选择展示方式：
 

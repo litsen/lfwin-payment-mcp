@@ -16,7 +16,8 @@ function valueAsString(value: unknown): string | undefined {
   if (value === null || value === undefined) {
     return undefined;
   }
-  return String(value);
+  const stringValue = String(value);
+  return stringValue === "[object Object]" ? undefined : stringValue;
 }
 
 function valueAsNumber(value: unknown): number | undefined {
@@ -79,6 +80,66 @@ function firstRefundRecord(result: LFWinResponse): LFWinResponse {
   return result;
 }
 
+const paymentTargetKeys = [
+  "pay_url",
+  "payUrl",
+  "payurl",
+  "payment_url",
+  "paymentUrl",
+  "cashier_url",
+  "cashierUrl",
+  "url",
+  "link",
+  "h5_url",
+  "h5Url",
+  "qrcode",
+  "qr_code",
+  "qrCode",
+  "qr_url",
+  "qrUrl",
+  "qr_code_url",
+  "qrCodeUrl",
+  "code_url",
+  "codeUrl",
+] as const;
+
+function extractPaymentTarget(value: unknown): string | undefined {
+  if (value === null || value === undefined || value === "") {
+    return undefined;
+  }
+  if (typeof value === "string") {
+    return value === "[object Object]" ? undefined : value;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const target = extractPaymentTarget(item);
+      if (target) {
+        return target;
+      }
+    }
+    return undefined;
+  }
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    for (const key of paymentTargetKeys) {
+      const target = extractPaymentTarget(record[key]);
+      if (target) {
+        return target;
+      }
+    }
+    for (const nested of Object.values(record)) {
+      const target = extractPaymentTarget(nested);
+      if (target) {
+        return target;
+      }
+    }
+  }
+  return undefined;
+}
+
 function paymentUsageInstruction(orderNo: unknown): string {
   return [
     "Show pay_qrcode_markdown to the user when Markdown is supported; otherwise render pay_qrcode_image as an image data URL,",
@@ -128,7 +189,7 @@ export class PaymentService {
       notify_url: input.notifyUrl ?? "",
     });
 
-    const payUrl = valueAsString(result.data);
+    const payUrl = extractPaymentTarget(result.data);
     const payQrcodeImage = payUrl ? await makePngDataUrl(payUrl) : undefined;
     const payQrcodeBase64 = payQrcodeImage?.startsWith(PNG_DATA_URL_PREFIX)
       ? payQrcodeImage.slice(PNG_DATA_URL_PREFIX.length)
@@ -150,6 +211,7 @@ export class PaymentService {
       pay_qrcode_mime_type: payQrcodeBase64 ? "image/png" : undefined,
       pay_qrcode_markdown: payQrcodeImage ? `![Payment QR Code](${payQrcodeImage})` : undefined,
       payment_display_examples: paymentDisplayExamples(payUrl, payQrcodeImage, payQrcodeBase64),
+      raw_payment_data: result.data,
       expire_time: new Intl.DateTimeFormat("zh-CN", {
         timeZone: "Asia/Shanghai",
         year: "numeric",

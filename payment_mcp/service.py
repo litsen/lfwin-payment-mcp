@@ -33,6 +33,55 @@ def to_str(value: object) -> str | None:
     return str(value)
 
 
+PAYMENT_TARGET_KEYS = (
+    "pay_url",
+    "payUrl",
+    "payurl",
+    "payment_url",
+    "paymentUrl",
+    "cashier_url",
+    "cashierUrl",
+    "url",
+    "link",
+    "h5_url",
+    "h5Url",
+    "qrcode",
+    "qr_code",
+    "qrCode",
+    "qr_url",
+    "qrUrl",
+    "qr_code_url",
+    "qrCodeUrl",
+    "code_url",
+    "codeUrl",
+)
+
+
+def extract_payment_target(value: object) -> str | None:
+    if value in (None, ""):
+        return None
+    if isinstance(value, str):
+        return None if value == "[object Object]" else value
+    if isinstance(value, (int, float, bool)):
+        return str(value)
+    if isinstance(value, dict):
+        for key in PAYMENT_TARGET_KEYS:
+            target = extract_payment_target(value.get(key))
+            if target:
+                return target
+        for nested in value.values():
+            target = extract_payment_target(nested)
+            if target:
+                return target
+        return None
+    if isinstance(value, list):
+        for item in value:
+            target = extract_payment_target(item)
+            if target:
+                return target
+    return None
+
+
 def map_refund_status(result: dict) -> PaymentStatus:
     raw_status = str(result.get("status", ""))
     refund_status = str(result.get("refund_status", ""))
@@ -107,8 +156,8 @@ class PaymentService:
             "notify_url": notify_url or "",
         }
         result = await self.client.create_cashier_order(payload)
-        pay_url = result.get("data")
-        pay_qrcode_image = make_png_data_url(str(pay_url)) if pay_url else None
+        pay_url = extract_payment_target(result.get("data"))
+        pay_qrcode_image = make_png_data_url(pay_url) if pay_url else None
         pay_qrcode_base64 = (
             pay_qrcode_image.removeprefix(PNG_DATA_URL_PREFIX)
             if pay_qrcode_image and pay_qrcode_image.startswith(PNG_DATA_URL_PREFIX)
@@ -130,6 +179,7 @@ class PaymentService:
             "pay_qrcode_mime_type": "image/png" if pay_qrcode_base64 else None,
             "pay_qrcode_markdown": f"![Payment QR Code]({pay_qrcode_image})" if pay_qrcode_image else None,
             "payment_display_examples": payment_display_examples(to_str(pay_url), pay_qrcode_image, pay_qrcode_base64),
+            "raw_payment_data": result.get("data"),
             "expire_time": (datetime.now(UTC) + timedelta(minutes=15)).astimezone(CHINA_TZ).strftime("%Y-%m-%d %H:%M:%S"),
             "display_instruction": payment_usage_instruction(order_no),
             "next_action": "Display the QR code/payment link, then poll query_payment_order with query_order_no/order_no.",

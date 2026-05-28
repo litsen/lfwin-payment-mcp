@@ -12,7 +12,7 @@ import { PaymentService } from "./service.js";
 
 const server = new McpServer({
   name: "lfwin-payment-mcp",
-  version: "0.1.4",
+  version: "0.1.5",
 });
 
 let service: PaymentService | undefined;
