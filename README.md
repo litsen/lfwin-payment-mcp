@@ -3,6 +3,7 @@
 [![CI](https://github.com/litsen/lfwin-payment-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/litsen/lfwin-payment-mcp/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![npm](https://img.shields.io/npm/v/@litsen/lfwin-payment-mcp.svg)](https://www.npmjs.com/package/@litsen/lfwin-payment-mcp)
+[![SafeSkill 91/100](https://img.shields.io/badge/SafeSkill-91%2F100_Verified%20Safe-brightgreen)](https://safeskill.dev/scan/litsen-lfwin-payment-mcp)
 
 LFWin Payment MCP Server 是一个面向 AI Agent 的支付能力服务。它通过标准 MCP 协议，把创建支付订单、查询支付状态、发起退款、查询退款状态等能力开放给 Cursor、Cline、Claude Desktop、企业智能助手和自研 Agent 应用。
 
