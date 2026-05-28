@@ -1,4 +1,5 @@
 import asyncio
+from base64 import b64decode
 
 import pytest
 
@@ -50,7 +51,15 @@ def test_create_payment_order_returns_display_and_platform_order_hints() -> None
         assert result["query_order_no"] == "202605270001"
         assert result["merchant_order_no"] == "MCH-001"
         assert result["pay_url"] == "https://pay.example.test/cashier/202605270001"
+        assert result["qrcode"] == result["pay_url"]
         assert str(result["pay_qrcode_markdown"]).startswith("![Payment QR Code](data:image/png;base64,")
+        assert str(result["pay_qrcode_image"]).startswith("data:image/png;base64,")
+        assert result["pay_qrcode_mime_type"] == "image/png"
+        assert b64decode(str(result["pay_qrcode_base64"]))[:8] == b"\x89PNG\r\n\x1a\n"
+        assert str(result["pay_qrcode_image"]).endswith(str(result["pay_qrcode_base64"]))
+        examples = result["payment_display_examples"]
+        assert examples["mcp_image_content"]["data"] == "pay_qrcode_base64"
+        assert "pay_url" in examples["payment_link"]
         assert "Do not use merchant_order_no" in str(result["display_instruction"])
 
     asyncio.run(run())

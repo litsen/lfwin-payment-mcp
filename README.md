@@ -25,7 +25,10 @@ LFWin Payment MCP Server 是一个面向 AI Agent 的支付能力服务。它通
 - `pay_url`：统一收银台支付跳转链接
 - `qrcode`：同 `pay_url`，用于兼容需要扫码内容的调用方
 - `pay_qrcode_image`：基于 `pay_url` 生成的二维码 PNG `data:image/png;base64,...`
+- `pay_qrcode_base64`：同一张二维码 PNG 的裸 base64，不包含 `data:image/png;base64,` 前缀
+- `pay_qrcode_mime_type`：固定为 `image/png`，用于 MCP 图片内容块或自研客户端渲染
 - `pay_qrcode_markdown`：可直接展示的 Markdown 图片文本
+- `payment_display_examples`：按 Markdown、HTML/img、MCP image content、支付链接兜底等场景给出的展示示例
 
 Node.js 版还会在 MCP 工具结果中额外返回 `type: "image"` 的 PNG 内容块，方便支持图片渲染的 MCP 客户端直接显示二维码。
 
@@ -37,10 +40,51 @@ Node.js 版还会在 MCP 工具结果中额外返回 `type: "image"` 的 PNG 内
 
 - 支持 Markdown 的对话窗口：优先直接输出 `pay_qrcode_markdown`。
 - 支持 MCP 图片内容块的客户端：Node.js 版工具结果里会带 `type: "image"` 的 PNG 内容块，可直接展示。
-- 需要前端自行渲染图片：使用 `pay_qrcode_image`，这是 `data:image/png;base64,...` 格式。
+- 需要前端自行渲染图片：使用 `pay_qrcode_image`，这是完整的 `data:image/png;base64,...` data URL，可直接作为 `<img src>`。
+- 只接受裸 base64 的客户端：使用 `pay_qrcode_base64`，并将媒体类型设置为 `pay_qrcode_mime_type`。
 - 需要跳转支付或自行生成二维码：使用 `pay_url`；`qrcode` 与 `pay_url` 相同，仅作为兼容字段。
 
 不要只告诉用户“已创建订单”而不展示二维码或支付链接。面向用户时应展示二维码，并保留 `pay_url` 作为扫码失败时的备用链接。
+
+### 支付字段展示调用示例
+
+假设 `create_payment_order` 返回结果保存为 `order`：
+
+Markdown 对话窗口可直接输出：
+
+```md
+{order.pay_qrcode_markdown}
+```
+
+Web 前端可把完整 data URL 放进图片标签：
+
+```html
+<img alt="Payment QR Code" src="{order.pay_qrcode_image}" />
+```
+
+React/Vue 等前端可直接绑定图片地址：
+
+```tsx
+<img alt="Payment QR Code" src={order.pay_qrcode_image} />
+```
+
+MCP 或自研客户端只接受图片内容块时，使用裸 base64 和 MIME：
+
+```json
+{
+  "type": "image",
+  "mimeType": "image/png",
+  "data": "{order.pay_qrcode_base64}"
+}
+```
+
+如果图片无法展示，必须展示备用支付链接：
+
+```md
+[点击打开支付链接]({order.pay_url})
+```
+
+如果客户端需要自己生成二维码，使用 `qrcode` 或 `pay_url` 作为二维码内容，不要把 `pay_qrcode_image` 再当文本编码进二维码。
 
 ### 订单号使用规则
 
@@ -210,7 +254,7 @@ Python 版：
 
 - `order_no`：平台订单号，对应接口文档里的 `orderid`。后续查询、退款、退款查询必须优先使用该值。
 - `merchant_order_no`：商户订单号，对应创建订单时传入的 `merchant_order_no` / 接口文档里的 `mch_orderid`，不要用它替代 `order_no` 查询。
-- `pay_url` / `qrcode` / `pay_qrcode_image` / `pay_qrcode_markdown`：支付展示字段。返回结果中的 `pay_qrcode_markdown` 可以直接让 AI 输出给用户，用于扫码支付。
+- `pay_url` / `qrcode` / `pay_qrcode_image` / `pay_qrcode_base64` / `pay_qrcode_mime_type` / `pay_qrcode_markdown` / `payment_display_examples`：支付展示字段。返回结果中的 `pay_qrcode_markdown` 可以直接让 AI 输出给用户，用于扫码支付；`pay_qrcode_image` 可直接作为 `<img src>`；`pay_qrcode_base64` 搭配 `pay_qrcode_mime_type` 可用于 MCP 图片内容块或只接受裸 base64 的客户端。
 
 ### query_payment_order
 
@@ -276,8 +320,8 @@ npm publish --access public
 GitHub Release：
 
 ```bash
-git tag v0.1.3
-git push origin v0.1.3
+git tag v0.1.4
+git push origin v0.1.4
 ```
 
 推送 `v*` tag 后，Release workflow 会自动构建 `.mcpb` 并上传到 GitHub Release。
@@ -305,7 +349,7 @@ npm run build
 生成文件：
 
 ```text
-dist/lfwin-payment-mcp-0.1.3.mcpb
+dist/lfwin-payment-mcp-0.1.4.mcpb
 ```
 
 MCPB 安装时会提示用户填写：

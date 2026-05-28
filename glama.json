@@ -29,7 +29,7 @@
   "tools": [
     {
       "name": "create_payment_order",
-      "description": "Create a cashier payment order. merchant_order_no is the merchant mch_orderid for business correlation. Save the returned order_no/platform orderid for later query/refund calls. Display pay_qrcode_markdown in Markdown clients, the image content block when supported, pay_qrcode_image for frontend rendering, or pay_url/qrcode as fallback."
+      "description": "Create a cashier payment order. merchant_order_no is the merchant mch_orderid for business correlation. Save the returned order_no/platform orderid for later query/refund calls. Display pay_qrcode_markdown in Markdown clients, the image content block when supported, pay_qrcode_image as an img src/data URL, pay_qrcode_base64 with pay_qrcode_mime_type for raw-base64 image rendering, or pay_url/qrcode as fallback. See payment_display_examples in the result for concrete display snippets."
     },
     {
       "name": "query_payment_order",

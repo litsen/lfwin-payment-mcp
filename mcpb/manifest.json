@@ -3,7 +3,7 @@
   "manifest_version": "0.4",
   "name": "@litsen/lfwin-payment-mcp",
   "display_name": "LFWin Payment MCP",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "LFWin payment MCP server for AI agents. Creates cashier payment orders, returns QR-code display fields, queries by platform order_no/orderid, creates refund requests, and queries actual refund status.",
   "author": {
     "name": "Litsen",
@@ -46,7 +46,7 @@
   "tools": [
     {
       "name": "create_payment_order",
-      "description": "Create a cashier payment order. The input merchant_order_no is the merchant mch_orderid for business correlation only. On success, save the returned order_no, which is the platform orderid for later query/refund calls. Display payment using pay_qrcode_markdown when Markdown is supported, the image content block when supported, pay_qrcode_image for frontend image rendering, or pay_url/qrcode as fallback."
+      "description": "Create a cashier payment order. The input merchant_order_no is the merchant mch_orderid for business correlation only. On success, save the returned order_no, which is the platform orderid for later query/refund calls. Display payment using pay_qrcode_markdown when Markdown is supported, the image content block when supported, pay_qrcode_image as an img src/data URL, pay_qrcode_base64 with pay_qrcode_mime_type for raw-base64 image rendering, or pay_url/qrcode as fallback. See payment_display_examples in the result for concrete display snippets."
     },
     {
       "name": "query_payment_order",

@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 import type { LFWinClient, LFWinResponse } from "./client.js";
-import { makePngDataUrl } from "./qrcode-image.js";
+import { PNG_DATA_URL_PREFIX, makePngDataUrl } from "./qrcode-image.js";
 
 export enum PaymentStatus {
   Pending = "PENDING",
@@ -81,11 +81,36 @@ function firstRefundRecord(result: LFWinResponse): LFWinResponse {
 
 function paymentUsageInstruction(orderNo: unknown): string {
   return [
-    "Show pay_qrcode_markdown to the user when Markdown is supported; otherwise render pay_qrcode_image as an image,",
-    "or use pay_url/qrcode as the payment link/QR content.",
+    "Show pay_qrcode_markdown to the user when Markdown is supported; otherwise render pay_qrcode_image as an image data URL,",
+    "use pay_qrcode_base64 with mime_type image/png when the client expects raw base64, or use pay_url/qrcode as the payment link/QR content.",
     `Store order_no (${valueAsString(orderNo) ?? ""}) as the platform order number for all later payment query and refund tools.`,
     "Do not use merchant_order_no for query_payment_order unless a merchant-order query tool explicitly asks for merchant_order_no plus order_time.",
   ].join(" ");
+}
+
+function paymentDisplayExamples(
+  payUrl: string | undefined,
+  payQrcodeImage: string | undefined,
+  payQrcodeBase64: string | undefined,
+): Record<string, unknown> {
+  return {
+    markdown: "Output pay_qrcode_markdown directly in Markdown-capable chat clients.",
+    html_img: '<img alt="Payment QR Code" src="{pay_qrcode_image}" />',
+    frontend_image_src: "Set an image element src to pay_qrcode_image; it already includes data:image/png;base64,.",
+    mcp_image_content: {
+      type: "image",
+      mimeType: "image/png",
+      data: "pay_qrcode_base64",
+    },
+    payment_link: "If the QR image cannot be displayed, show pay_url as a clickable payment link.",
+    current_values: {
+      pay_url: payUrl,
+      qrcode: payUrl,
+      pay_qrcode_image_prefix: payQrcodeImage ? PNG_DATA_URL_PREFIX : undefined,
+      pay_qrcode_base64_available: Boolean(payQrcodeBase64),
+      pay_qrcode_mime_type: payQrcodeBase64 ? "image/png" : undefined,
+    },
+  };
 }
 
 export class PaymentService {
@@ -105,6 +130,9 @@ export class PaymentService {
 
     const payUrl = valueAsString(result.data);
     const payQrcodeImage = payUrl ? await makePngDataUrl(payUrl) : undefined;
+    const payQrcodeBase64 = payQrcodeImage?.startsWith(PNG_DATA_URL_PREFIX)
+      ? payQrcodeImage.slice(PNG_DATA_URL_PREFIX.length)
+      : undefined;
     const orderNo = valueAsString(result.orderid) ?? "";
 
     return {
@@ -118,7 +146,10 @@ export class PaymentService {
       pay_url: payUrl,
       qrcode: payUrl,
       pay_qrcode_image: payQrcodeImage,
+      pay_qrcode_base64: payQrcodeBase64,
+      pay_qrcode_mime_type: payQrcodeBase64 ? "image/png" : undefined,
       pay_qrcode_markdown: payQrcodeImage ? `![Payment QR Code](${payQrcodeImage})` : undefined,
+      payment_display_examples: paymentDisplayExamples(payUrl, payQrcodeImage, payQrcodeBase64),
       expire_time: new Intl.DateTimeFormat("zh-CN", {
         timeZone: "Asia/Shanghai",
         year: "numeric",

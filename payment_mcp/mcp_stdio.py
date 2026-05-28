@@ -25,7 +25,9 @@ async def create_payment_order(
     """Create a cashier payment order.
 
     merchant_order_no is the merchant's own unique order number. After success,
-    show pay_qrcode_markdown or pay_qrcode_image to the user for QR payment and
+    show pay_qrcode_markdown, pay_qrcode_image, or pay_qrcode_base64 with
+    pay_qrcode_mime_type to the user for QR payment; use pay_url/qrcode as the
+    fallback payment link. See payment_display_examples for concrete snippets.
     save order_no/query_order_no as the platform order number for later query
     and refund tools.
     """

@@ -7,11 +7,12 @@ import { z } from "zod";
 
 import { LFWinClient } from "./client.js";
 import { loadSettings } from "./config.js";
+import { PNG_DATA_URL_PREFIX } from "./qrcode-image.js";
 import { PaymentService } from "./service.js";
 
 const server = new McpServer({
   name: "lfwin-payment-mcp",
-  version: "0.1.3",
+  version: "0.1.4",
 });
 
 let service: PaymentService | undefined;
@@ -43,11 +44,10 @@ function paymentOrderResult(value: Record<string, unknown>) {
   ];
 
   const image = typeof value.pay_qrcode_image === "string" ? value.pay_qrcode_image : undefined;
-  const prefix = "data:image/png;base64,";
-  if (image?.startsWith(prefix)) {
+  if (image?.startsWith(PNG_DATA_URL_PREFIX)) {
     content.push({
       type: "image" as const,
-      data: image.slice(prefix.length),
+      data: image.slice(PNG_DATA_URL_PREFIX.length),
       mimeType: "image/png",
     });
   }
@@ -59,7 +59,8 @@ server.tool(
   "create_payment_order",
   [
     "Create a cashier payment order. Amount is in yuan and merchant_order_no is the merchant's own unique order number.",
-    "After success, display pay_qrcode_markdown or the returned image content block as the QR code.",
+    "After success, display pay_qrcode_markdown, the returned image content block, pay_qrcode_image data URL, or pay_qrcode_base64 with pay_qrcode_mime_type as the QR code.",
+    "If QR rendering fails, show pay_url/qrcode as the fallback payment link.",
     "Save order_no/query_order_no as the platform order number for later query and refund tools.",
   ].join(" "),
   {
