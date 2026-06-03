@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "lfwin-payment-mcp"
-version = "0.1.5"
+version = "0.1.6"
 description = "MCP server for LFWin payment order, query, refund, and refund status tools."
 readme = "README.md"
 requires-python = ">=3.12"

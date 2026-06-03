@@ -140,6 +140,14 @@ function extractPaymentTarget(value: unknown): string | undefined {
   return undefined;
 }
 
+function normalizePaymentTarget(value: unknown): string | undefined {
+  const target = extractPaymentTarget(value);
+  if (!target || target === "[object Object]") {
+    return undefined;
+  }
+  return target;
+}
+
 function paymentUsageInstruction(orderNo: unknown): string {
   return [
     "Show pay_qrcode_markdown to the user when Markdown is supported; otherwise render pay_qrcode_image as an image data URL,",
@@ -189,7 +197,7 @@ export class PaymentService {
       notify_url: input.notifyUrl ?? "",
     });
 
-    const payUrl = extractPaymentTarget(result.data);
+    const payUrl = normalizePaymentTarget(result.data);
     const payQrcodeImage = payUrl ? await makePngDataUrl(payUrl) : undefined;
     const payQrcodeBase64 = payQrcodeImage?.startsWith(PNG_DATA_URL_PREFIX)
       ? payQrcodeImage.slice(PNG_DATA_URL_PREFIX.length)
@@ -204,8 +212,8 @@ export class PaymentService {
       merchant_order_no: input.merchantOrderNo,
       amount: input.amount,
       status: PaymentStatus.Pending,
-      pay_url: payUrl,
-      qrcode: payUrl,
+      pay_url: normalizePaymentTarget(payUrl),
+      qrcode: normalizePaymentTarget(payUrl),
       pay_qrcode_image: payQrcodeImage,
       pay_qrcode_base64: payQrcodeBase64,
       pay_qrcode_mime_type: payQrcodeBase64 ? "image/png" : undefined,

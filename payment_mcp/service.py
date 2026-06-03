@@ -82,6 +82,13 @@ def extract_payment_target(value: object) -> str | None:
     return None
 
 
+def normalize_payment_target(value: object) -> str | None:
+    target = extract_payment_target(value)
+    if not target or target == "[object Object]":
+        return None
+    return target
+
+
 def map_refund_status(result: dict) -> PaymentStatus:
     raw_status = str(result.get("status", ""))
     refund_status = str(result.get("refund_status", ""))
@@ -156,7 +163,7 @@ class PaymentService:
             "notify_url": notify_url or "",
         }
         result = await self.client.create_cashier_order(payload)
-        pay_url = extract_payment_target(result.get("data"))
+        pay_url = normalize_payment_target(result.get("data"))
         pay_qrcode_image = make_png_data_url(pay_url) if pay_url else None
         pay_qrcode_base64 = (
             pay_qrcode_image.removeprefix(PNG_DATA_URL_PREFIX)
@@ -172,8 +179,8 @@ class PaymentService:
             "merchant_order_no": merchant_order_no,
             "amount": amount,
             "status": PaymentStatus.PENDING.value,
-            "pay_url": pay_url,
-            "qrcode": pay_url,
+            "pay_url": normalize_payment_target(pay_url),
+            "qrcode": normalize_payment_target(pay_url),
             "pay_qrcode_image": pay_qrcode_image,
             "pay_qrcode_base64": pay_qrcode_base64,
             "pay_qrcode_mime_type": "image/png" if pay_qrcode_base64 else None,
