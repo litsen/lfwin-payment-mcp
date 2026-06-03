@@ -88,10 +88,10 @@ def test_create_payment_order_extracts_url_from_data_object() -> None:
         assert result["qrcode"] == "https://pay.example.test/cashier/object"
         assert "[object Object]" not in str(result["pay_qrcode_markdown"])
         assert b64decode(str(result["pay_qrcode_base64"]))[:8] == b"\x89PNG\r\n\x1a\n"
-        assert result["raw_payment_data"] == {
-            "orderid": "PLAT-OBJECT",
-            "payUrl": "https://pay.example.test/cashier/object",
-        }
+        assert result["raw_payment_data_json"] == (
+            '{"orderid":"PLAT-OBJECT","payUrl":"https://pay.example.test/cashier/object"}'
+        )
+        assert "raw_payment_data" not in result
 
     asyncio.run(run())
 

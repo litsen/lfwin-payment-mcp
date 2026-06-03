@@ -148,6 +148,17 @@ function normalizePaymentTarget(value: unknown): string | undefined {
   return target;
 }
 
+function valueAsJsonString(value: unknown): string | undefined {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return valueAsString(value);
+  }
+}
+
 function paymentUsageInstruction(orderNo: unknown): string {
   return [
     "Show pay_qrcode_markdown to the user when Markdown is supported; otherwise render pay_qrcode_image as an image data URL,",
@@ -219,7 +230,7 @@ export class PaymentService {
       pay_qrcode_mime_type: payQrcodeBase64 ? "image/png" : undefined,
       pay_qrcode_markdown: payQrcodeImage ? `![Payment QR Code](${payQrcodeImage})` : undefined,
       payment_display_examples: paymentDisplayExamples(payUrl, payQrcodeImage, payQrcodeBase64),
-      raw_payment_data: result.data,
+      raw_payment_data_json: valueAsJsonString(result.data),
       expire_time: new Intl.DateTimeFormat("zh-CN", {
         timeZone: "Asia/Shanghai",
         year: "numeric",

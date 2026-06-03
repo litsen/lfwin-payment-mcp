@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta, timezone
+import json
 import uuid
 
 from payment_mcp.client import LFWinClient
@@ -87,6 +88,15 @@ def normalize_payment_target(value: object) -> str | None:
     if not target or target == "[object Object]":
         return None
     return target
+
+
+def value_as_json_string(value: object) -> str | None:
+    if value is None:
+        return None
+    try:
+        return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+    except (TypeError, ValueError):
+        return to_str(value)
 
 
 def map_refund_status(result: dict) -> PaymentStatus:
@@ -186,7 +196,7 @@ class PaymentService:
             "pay_qrcode_mime_type": "image/png" if pay_qrcode_base64 else None,
             "pay_qrcode_markdown": f"![Payment QR Code]({pay_qrcode_image})" if pay_qrcode_image else None,
             "payment_display_examples": payment_display_examples(to_str(pay_url), pay_qrcode_image, pay_qrcode_base64),
-            "raw_payment_data": result.get("data"),
+            "raw_payment_data_json": value_as_json_string(result.get("data")),
             "expire_time": (datetime.now(UTC) + timedelta(minutes=15)).astimezone(CHINA_TZ).strftime("%Y-%m-%d %H:%M:%S"),
             "display_instruction": payment_usage_instruction(order_no),
             "next_action": "Display the QR code/payment link, then poll query_payment_order with query_order_no/order_no.",
