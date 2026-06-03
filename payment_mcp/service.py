@@ -266,6 +266,8 @@ class PaymentService:
 
         result = await self.client.query_order(payload)
         paystatus = str(result.get("paystatus", "0"))
+        raw_status = str(result.get("status", ""))
+        is_pre_scan_missing = query_method == "merchant_order_no_order_time" and raw_status == "3040"
         status = PaymentStatus.PENDING
         if paystatus == "1":
             status = PaymentStatus.SUCCESS
@@ -281,11 +283,18 @@ class PaymentService:
             "order_time": order_time,
             "query_method": query_method,
             "status": status.value,
+            "pending_reason": "WAITING_FOR_USER_SCAN_OR_PAYMENT_ORDER_CREATION" if is_pre_scan_missing else None,
             "paid_amount": to_float(result.get("paymoney")) or 0,
             "paid_time": parse_unix_seconds(result.get("paytime")),
-            "query_instruction": "Treat paystatus=1 as paid, paystatus=2 as failed, otherwise keep pending.",
-            "message": result.get("message"),
-            "raw_status": str(result.get("status", "")),
+            "query_instruction": (
+                "The cashier payment order may not exist before the user scans or opens the payment link. "
+                "Treat raw_status=3040 as PENDING and keep polling with merchant_order_no plus order_time."
+                if is_pre_scan_missing
+                else "Treat paystatus=1 as paid, paystatus=2 as failed, otherwise keep pending."
+            ),
+            "message": "待支付：用户扫码或打开支付链接前，平台支付订单可能尚未生成。" if is_pre_scan_missing else result.get("message"),
+            "raw_message": result.get("message"),
+            "raw_status": raw_status,
             "raw_paystatus": paystatus,
         }
 

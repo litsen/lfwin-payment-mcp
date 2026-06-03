@@ -3,7 +3,7 @@
   "manifest_version": "0.4",
   "name": "@litsen/lfwin-payment-mcp",
   "display_name": "LFWin Payment MCP",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "description": "LFWin payment MCP server for AI agents. Creates cashier payment orders, returns QR-code display fields, queries by platform order_no/orderid, creates refund requests, and queries actual refund status.",
   "author": {
     "name": "Litsen",

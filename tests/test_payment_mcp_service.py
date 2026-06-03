@@ -203,6 +203,34 @@ def test_query_payment_order_can_use_merchant_order_no_and_order_time() -> None:
     asyncio.run(run())
 
 
+def test_query_payment_order_treats_prescan_missing_order_as_pending() -> None:
+    async def run() -> None:
+        client = FakeClient(
+            {
+                "query_order": {
+                    "status": "3040",
+                    "message": "订单号不存在",
+                }
+            }
+        )
+        service = PaymentService(client)  # type: ignore[arg-type]
+
+        result = await service.query_payment_order(
+            merchant_order_no="MCH-123",
+            order_time="20260603163000",
+        )
+
+        assert result["success"] is False
+        assert result["status"] == PaymentStatus.PENDING.value
+        assert result["pending_reason"] == "WAITING_FOR_USER_SCAN_OR_PAYMENT_ORDER_CREATION"
+        assert "待支付" in str(result["message"])
+        assert result["raw_message"] == "订单号不存在"
+        assert result["raw_status"] == "3040"
+        assert "raw_status=3040 as PENDING" in str(result["query_instruction"])
+
+    asyncio.run(run())
+
+
 def test_refund_submission_4001_is_processing_not_final_success() -> None:
     async def run() -> None:
         client = FakeClient(

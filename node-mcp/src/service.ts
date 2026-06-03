@@ -331,6 +331,8 @@ export class PaymentService {
     const result = await this.client.queryOrder(payload);
 
     const payStatus = valueAsString(result.paystatus) ?? "0";
+    const rawStatus = valueAsString(result.status) ?? "";
+    const isPreScanMissing = queryMethod === "merchant_order_no_order_time" && rawStatus === "3040";
     let status = PaymentStatus.Pending;
     if (payStatus === "1") {
       status = PaymentStatus.Success;
@@ -348,11 +350,15 @@ export class PaymentService {
       order_time: input.orderTime,
       query_method: queryMethod,
       status,
+      pending_reason: isPreScanMissing ? "WAITING_FOR_USER_SCAN_OR_PAYMENT_ORDER_CREATION" : undefined,
       paid_amount: valueAsNumber(result.paymoney) ?? 0,
       paid_time: parseUnixSeconds(result.paytime),
-      query_instruction: "Treat paystatus=1 as paid, paystatus=2 as failed, otherwise keep pending.",
-      message: valueAsString(result.message),
-      raw_status: valueAsString(result.status) ?? "",
+      query_instruction: isPreScanMissing
+        ? "The cashier payment order may not exist before the user scans or opens the payment link. Treat raw_status=3040 as PENDING and keep polling with merchant_order_no plus order_time."
+        : "Treat paystatus=1 as paid, paystatus=2 as failed, otherwise keep pending.",
+      message: isPreScanMissing ? "待支付：用户扫码或打开支付链接前，平台支付订单可能尚未生成。" : valueAsString(result.message),
+      raw_message: valueAsString(result.message),
+      raw_status: rawStatus,
       raw_paystatus: payStatus,
     };
   }

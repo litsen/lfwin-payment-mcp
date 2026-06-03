@@ -103,7 +103,7 @@ AI Agent 必须保存 `create_payment_order` 返回的 `order_no`、`merchant_or
 
 ### 查询和退款状态判断
 
-- 支付查询：优先传 `order_no`。如果创建订单时 `order_no` 为空，则传 `merchant_order_no` 和 `order_time`。返回 `status=10000` 且 `paystatus=1` 表示支付成功；`paystatus=0` 表示待付款；`paystatus=2` 表示支付失败。
+- 支付查询：优先传 `order_no`。如果创建订单时 `order_no` 为空，则传 `merchant_order_no` 和 `order_time`。返回 `status=10000` 且 `paystatus=1` 表示支付成功；`paystatus=0` 表示待付款；`paystatus=2` 表示支付失败。使用 `merchant_order_no + order_time` 查询时，如果用户尚未扫码或打开支付链接，平台支付订单可能还未生成，底层接口可能返回 `raw_status=3040` / `raw_message=订单号不存在`；本 MCP 会将其标准化为 `status=PENDING`，并返回 `pending_reason=WAITING_FOR_USER_SCAN_OR_PAYMENT_ORDER_CREATION`。
 - 发起退款：`refund_payment_order` 的 `order_no` 必须传平台订单号，`mch_refund_no` 是商户退款流水号。同一笔订单多次部分退款时，每次退款应使用不同的 `mch_refund_no`。
 - 退款不是发起即成功：退款请求返回 `status=4001` 或 `status=10000` 只表示请求已被接受或处理中，不代表退款成功。必须继续调用 `query_refund_status` 查询实际结果。
 - 退款查询：`query_refund_status` 的 `order_no` 必须传平台订单号；如果发起退款时传了 `mch_refund_no`，查询时也应带上同一个 `mch_refund_no`。返回 `status=4001` 表示处理中；`status=10000` 且 `refund_status=1` 表示退款成功；`status=10000` 且 `refund_status=2` 表示退款失败。
@@ -272,6 +272,8 @@ Python 版：
 - `merchant_order_no`：商户订单号，可选；当 `order_no` 为空时必须与 `order_time` 一起传入。
 - `order_time`：下单时间，可选；当 `order_no` 为空时必须与 `merchant_order_no` 一起传入，使用 `create_payment_order` 返回的 `order_time`。
 
+当使用 `merchant_order_no + order_time` 查询且用户尚未扫码时，返回 `raw_status=3040` 是正常的待支付/待落库状态。本 MCP 会返回 `status=PENDING`，前端应继续展示待支付并继续轮询，而不是提示支付失败。
+
 ### refund_payment_order
 
 发起退款。
@@ -328,8 +330,8 @@ npm publish --access public
 GitHub Release：
 
 ```bash
-git tag v0.1.9
-git push origin v0.1.9
+git tag v0.1.10
+git push origin v0.1.10
 ```
 
 推送 `v*` tag 后，Release workflow 会自动构建 `.mcpb` 并上传到 GitHub Release。
@@ -357,7 +359,7 @@ npm run build
 生成文件：
 
 ```text
-dist/lfwin-payment-mcp-0.1.9.mcpb
+dist/lfwin-payment-mcp-0.1.10.mcpb
 ```
 
 MCPB 安装时会提示用户填写：
