@@ -192,7 +192,7 @@ function paymentUsageInstruction(orderNo: unknown): string {
     return [
       "Display pay_qrcode_markdown or pay_qrcode_image to the user for QR payment, and keep pay_url/qrcode as the fallback payment link.",
       "The cashier pre_order response did not include platform orderid, so order_no/query_order_no is null.",
-      "Do not invent an order_no from merchant_order_no; use merchant_order_no only for merchant-side correlation unless another tool explicitly supports merchant-order queries.",
+      "Poll query_payment_order with merchant_order_no plus order_time returned by create_payment_order. Do not invent an order_no from merchant_order_no.",
     ].join(" ");
   }
   return [
@@ -236,6 +236,23 @@ export class PaymentService {
     amount: number;
     notifyUrl?: string;
   }): Promise<Record<string, unknown>> {
+    const createdAt = new Date();
+    const orderTime = new Intl.DateTimeFormat("zh-CN", {
+      timeZone: "Asia/Shanghai",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    })
+      .format(createdAt)
+      .replaceAll("/", "")
+      .replaceAll("-", "")
+      .replaceAll(":", "")
+      .replaceAll(" ", "");
+
     const result = await this.client.createCashierOrder({
       money: input.amount.toFixed(2),
       nonce_str: randomUUID().replaceAll("-", "").slice(0, 16),
@@ -256,6 +273,8 @@ export class PaymentService {
       platform_order_no: orderNo,
       query_order_no: orderNo,
       merchant_order_no: input.merchantOrderNo,
+      order_time: orderTime,
+      order_time_format: "yyyyMMddHHmmss",
       order_no_available: Boolean(orderNo),
       amount: input.amount,
       status: PaymentStatus.Pending,
@@ -282,18 +301,34 @@ export class PaymentService {
       display_instruction: paymentUsageInstruction(orderNo),
       next_action: orderNo
         ? "Display the QR code/payment link, then poll query_payment_order with query_order_no/order_no."
-        : "Display the QR code/payment link. Poll query_payment_order only when order_no/query_order_no is present.",
+        : "Display the QR code/payment link, then poll query_payment_order with merchant_order_no and order_time.",
       message: valueAsString(result.message),
       raw_status: valueAsString(result.status) ?? "",
     };
   }
 
-  async queryPaymentOrder(orderNo: string): Promise<Record<string, unknown>> {
-    const result = await this.client.queryOrder({
+  async queryPaymentOrder(input: {
+    orderNo?: string;
+    merchantOrderNo?: string;
+    orderTime?: string;
+  }): Promise<Record<string, unknown>> {
+    const payload: Record<string, string> = {
       service: "pay.comm.query_order",
-      orderid: orderNo,
       nonce_str: randomUUID().replaceAll("-", "").slice(0, 16),
-    });
+    };
+    let queryMethod: "platform_order_no" | "merchant_order_no_order_time";
+    if (input.orderNo) {
+      payload.orderid = input.orderNo;
+      queryMethod = "platform_order_no";
+    } else if (input.merchantOrderNo && input.orderTime) {
+      payload.mch_orderid = input.merchantOrderNo;
+      payload.order_time = input.orderTime;
+      queryMethod = "merchant_order_no_order_time";
+    } else {
+      throw new Error("Pass either order_no, or merchant_order_no plus order_time.");
+    }
+
+    const result = await this.client.queryOrder(payload);
 
     const payStatus = valueAsString(result.paystatus) ?? "0";
     let status = PaymentStatus.Pending;
@@ -303,17 +338,19 @@ export class PaymentService {
       status = PaymentStatus.Failed;
     }
 
+    const resultOrderNo = valueAsString(result.orderid) ?? input.orderNo;
     return {
       success: result.status === "10000" && status === PaymentStatus.Success,
-      order_no: valueAsString(result.orderid) ?? orderNo,
-      platform_order_no: valueAsString(result.orderid) ?? orderNo,
-      query_order_no: valueAsString(result.orderid) ?? orderNo,
-      merchant_order_no: valueAsString(result.mch_orderid),
+      order_no: resultOrderNo,
+      platform_order_no: resultOrderNo,
+      query_order_no: resultOrderNo,
+      merchant_order_no: valueAsString(result.mch_orderid) ?? input.merchantOrderNo,
+      order_time: input.orderTime,
+      query_method: queryMethod,
       status,
       paid_amount: valueAsNumber(result.paymoney) ?? 0,
       paid_time: parseUnixSeconds(result.paytime),
-      query_instruction:
-        "This result was queried by platform order_no/orderid. Treat paystatus=1 as paid, paystatus=2 as failed, otherwise keep pending.",
+      query_instruction: "Treat paystatus=1 as paid, paystatus=2 as failed, otherwise keep pending.",
       message: valueAsString(result.message),
       raw_status: valueAsString(result.status) ?? "",
       raw_paystatus: payStatus,

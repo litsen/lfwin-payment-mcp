@@ -29,11 +29,11 @@
   "tools": [
     {
       "name": "create_payment_order",
-      "description": "Create a cashier payment order. merchant_order_no is the merchant mch_orderid for business correlation. Save the returned order_no/platform orderid for later query/refund calls. Display pay_qrcode_markdown in Markdown clients, the image content block when supported, pay_qrcode_image as an img src/data URL, pay_qrcode_base64 with pay_qrcode_mime_type for raw-base64 image rendering, or pay_url/qrcode as fallback. See payment_display_examples in the result for concrete display snippets."
+      "description": "Create a cashier payment order. merchant_order_no is the merchant mch_orderid for business correlation. Display pay_qrcode_markdown in Markdown clients, the image content block when supported, pay_qrcode_image as an img src/data URL, pay_qrcode_base64 with pay_qrcode_mime_type, or pay_url/qrcode as fallback. Save order_no when present. If order_no is null, save merchant_order_no plus order_time for query_payment_order polling."
     },
     {
       "name": "query_payment_order",
-      "description": "Query payment status by the platform order_no/orderid returned by create_payment_order. Do not pass merchant_order_no; merchant-order queries require order_time and are outside this tool's parameter contract."
+      "description": "Query payment status. Prefer platform order_no/orderid returned by create_payment_order. If order_no is null, pass merchant_order_no plus order_time returned by create_payment_order."
     },
     {
       "name": "refund_payment_order",

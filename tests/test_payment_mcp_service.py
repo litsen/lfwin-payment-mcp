@@ -51,6 +51,8 @@ def test_create_payment_order_returns_display_and_platform_order_hints() -> None
         assert result["query_order_no"] == "202605270001"
         assert result["order_no_available"] is True
         assert result["merchant_order_no"] == "MCH-001"
+        assert str(result["order_time"]).isdigit()
+        assert result["order_time_format"] == "yyyyMMddHHmmss"
         assert result["pay_url"] == "https://pay.example.test/cashier/202605270001"
         assert result["qrcode"] == result["pay_url"]
         assert str(result["pay_qrcode_markdown"]).startswith("![Payment QR Code](data:image/png;base64,")
@@ -87,9 +89,10 @@ def test_create_payment_order_marks_missing_platform_orderid() -> None:
         assert result["platform_order_no"] is None
         assert result["query_order_no"] is None
         assert result["order_no_available"] is False
+        assert str(result["order_time"]).isdigit()
         assert result["pay_url"] == "https://pay.example.test/cashier/no-orderid"
         assert "did not include platform orderid" in str(result["display_instruction"])
-        assert "only when order_no/query_order_no is present" in str(result["next_action"])
+        assert "merchant_order_no and order_time" in str(result["next_action"])
 
     asyncio.run(run())
 
@@ -164,7 +167,38 @@ def test_query_payment_order_uses_platform_orderid_payload_and_aliases() -> None
         assert result["success"] is True
         assert result["status"] == PaymentStatus.SUCCESS.value
         assert result["query_order_no"] == "PLAT-123"
-        assert "platform order_no/orderid" in str(result["query_instruction"])
+        assert result["query_method"] == "platform_order_no"
+
+    asyncio.run(run())
+
+
+def test_query_payment_order_can_use_merchant_order_no_and_order_time() -> None:
+    async def run() -> None:
+        client = FakeClient(
+            {
+                "query_order": {
+                    "status": "10000",
+                    "paystatus": "0",
+                    "mch_orderid": "MCH-123",
+                }
+            }
+        )
+        service = PaymentService(client)  # type: ignore[arg-type]
+
+        result = await service.query_payment_order(
+            merchant_order_no="MCH-123",
+            order_time="20260603163000",
+        )
+
+        payload = client.calls[0][1]
+        assert payload["mch_orderid"] == "MCH-123"
+        assert payload["order_time"] == "20260603163000"
+        assert "orderid" not in payload
+        assert result["success"] is False
+        assert result["status"] == PaymentStatus.PENDING.value
+        assert result["merchant_order_no"] == "MCH-123"
+        assert result["order_time"] == "20260603163000"
+        assert result["query_method"] == "merchant_order_no_order_time"
 
     asyncio.run(run())
 

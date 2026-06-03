@@ -153,8 +153,8 @@ def payment_usage_instruction(order_no: object) -> str:
             "Display pay_qrcode_markdown or pay_qrcode_image to the user for QR payment, "
             "and keep pay_url/qrcode as the fallback payment link. The cashier pre_order "
             "response did not include platform orderid, so order_no/query_order_no is null. "
-            "Do not invent an order_no from merchant_order_no; use merchant_order_no only "
-            "for merchant-side correlation unless another tool explicitly supports merchant-order queries."
+            "Poll query_payment_order with merchant_order_no plus order_time returned by "
+            "create_payment_order. Do not invent an order_no from merchant_order_no."
         )
     return (
         "Show pay_qrcode_markdown to the user when Markdown is supported; otherwise render "
@@ -197,6 +197,8 @@ class PaymentService:
         amount: float,
         notify_url: str | None = None,
     ) -> dict:
+        created_at = datetime.now(UTC).astimezone(CHINA_TZ)
+        order_time = created_at.strftime("%Y%m%d%H%M%S")
         payload = {
             "money": f"{amount:.2f}",
             "nonce_str": uuid.uuid4().hex[:16],
@@ -218,6 +220,8 @@ class PaymentService:
             "platform_order_no": order_no,
             "query_order_no": order_no,
             "merchant_order_no": merchant_order_no,
+            "order_time": order_time,
+            "order_time_format": "yyyyMMddHHmmss",
             "order_no_available": bool(order_no),
             "amount": amount,
             "status": PaymentStatus.PENDING.value,
@@ -229,10 +233,10 @@ class PaymentService:
             "pay_qrcode_markdown": f"![Payment QR Code]({pay_qrcode_image})" if pay_qrcode_image else None,
             "payment_display_examples": payment_display_examples(to_str(pay_url), pay_qrcode_image, pay_qrcode_base64),
             "raw_payment_data_json": value_as_json_string(result.get("data")),
-            "expire_time": (datetime.now(UTC) + timedelta(minutes=15)).astimezone(CHINA_TZ).strftime("%Y-%m-%d %H:%M:%S"),
+            "expire_time": (created_at + timedelta(minutes=15)).strftime("%Y-%m-%d %H:%M:%S"),
             "display_instruction": payment_usage_instruction(order_no),
             "next_action": (
-                "Display the QR code/payment link. Poll query_payment_order only when order_no/query_order_no is present."
+                "Display the QR code/payment link, then poll query_payment_order with merchant_order_no and order_time."
                 if not order_no
                 else "Display the QR code/payment link, then poll query_payment_order with query_order_no/order_no."
             ),
@@ -240,12 +244,26 @@ class PaymentService:
             "raw_status": str(result.get("status", "")),
         }
 
-    async def query_payment_order(self, order_no: str) -> dict:
+    async def query_payment_order(
+        self,
+        order_no: str | None = None,
+        merchant_order_no: str | None = None,
+        order_time: str | None = None,
+    ) -> dict:
         payload = {
             "service": "pay.comm.query_order",
-            "orderid": order_no,
             "nonce_str": uuid.uuid4().hex[:16],
         }
+        if order_no:
+            payload["orderid"] = order_no
+            query_method = "platform_order_no"
+        elif merchant_order_no and order_time:
+            payload["mch_orderid"] = merchant_order_no
+            payload["order_time"] = order_time
+            query_method = "merchant_order_no_order_time"
+        else:
+            raise ValueError("Pass either order_no, or merchant_order_no plus order_time.")
+
         result = await self.client.query_order(payload)
         paystatus = str(result.get("paystatus", "0"))
         status = PaymentStatus.PENDING
@@ -253,16 +271,19 @@ class PaymentService:
             status = PaymentStatus.SUCCESS
         elif paystatus == "2":
             status = PaymentStatus.FAILED
+        result_order_no = to_str(result.get("orderid")) or order_no
         return {
             "success": result.get("status") == "10000" and status == PaymentStatus.SUCCESS,
-            "order_no": to_str(result.get("orderid")) or order_no,
-            "platform_order_no": to_str(result.get("orderid")) or order_no,
-            "query_order_no": to_str(result.get("orderid")) or order_no,
-            "merchant_order_no": to_str(result.get("mch_orderid")),
+            "order_no": result_order_no,
+            "platform_order_no": result_order_no,
+            "query_order_no": result_order_no,
+            "merchant_order_no": to_str(result.get("mch_orderid")) or merchant_order_no,
+            "order_time": order_time,
+            "query_method": query_method,
             "status": status.value,
             "paid_amount": to_float(result.get("paymoney")) or 0,
             "paid_time": parse_unix_seconds(result.get("paytime")),
-            "query_instruction": "This result was queried by platform order_no/orderid. Treat paystatus=1 as paid, paystatus=2 as failed, otherwise keep pending.",
+            "query_instruction": "Treat paystatus=1 as paid, paystatus=2 as failed, otherwise keep pending.",
             "message": result.get("message"),
             "raw_status": str(result.get("status", "")),
             "raw_paystatus": paystatus,

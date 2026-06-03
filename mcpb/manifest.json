@@ -3,7 +3,7 @@
   "manifest_version": "0.4",
   "name": "@litsen/lfwin-payment-mcp",
   "display_name": "LFWin Payment MCP",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "LFWin payment MCP server for AI agents. Creates cashier payment orders, returns QR-code display fields, queries by platform order_no/orderid, creates refund requests, and queries actual refund status.",
   "author": {
     "name": "Litsen",
@@ -46,11 +46,11 @@
   "tools": [
     {
       "name": "create_payment_order",
-      "description": "Create a cashier payment order. The input merchant_order_no is the merchant mch_orderid for business correlation only. On success, save the returned order_no, which is the platform orderid for later query/refund calls. Display payment using pay_qrcode_markdown when Markdown is supported, the image content block when supported, pay_qrcode_image as an img src/data URL, pay_qrcode_base64 with pay_qrcode_mime_type for raw-base64 image rendering, or pay_url/qrcode as fallback. See payment_display_examples in the result for concrete display snippets."
+      "description": "Create a cashier payment order. The input merchant_order_no is the merchant mch_orderid for business correlation. On success, display payment using pay_qrcode_markdown, the image content block, pay_qrcode_image, pay_qrcode_base64 with pay_qrcode_mime_type, or pay_url/qrcode as fallback. Save order_no when present. If order_no is null, save merchant_order_no plus order_time and use both for query_payment_order polling."
     },
     {
       "name": "query_payment_order",
-      "description": "Query payment order status by platform order_no/orderid returned by create_payment_order. Do not pass merchant_order_no here; the underlying merchant-order query requires order_time and is not this tool's parameter contract."
+      "description": "Query payment order status. Prefer platform order_no/orderid returned by create_payment_order. If order_no is null, pass merchant_order_no plus order_time returned by create_payment_order."
     },
     {
       "name": "refund_payment_order",

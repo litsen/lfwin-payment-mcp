@@ -28,8 +28,8 @@ async def create_payment_order(
     show pay_qrcode_markdown, pay_qrcode_image, or pay_qrcode_base64 with
     pay_qrcode_mime_type to the user for QR payment; use pay_url/qrcode as the
     fallback payment link. See payment_display_examples for concrete snippets.
-    save order_no/query_order_no as the platform order number for later query
-    and refund tools.
+    save order_no/query_order_no when present. If order_no is null, save
+    merchant_order_no plus order_time for query_payment_order polling.
     """
     service = get_service()
     return await service.create_payment_order(
@@ -40,14 +40,23 @@ async def create_payment_order(
 
 
 @mcp.tool()
-async def query_payment_order(order_no: str) -> dict:
-    """Query payment status by platform order_no/orderid returned by create_payment_order.
+async def query_payment_order(
+    order_no: str | None = None,
+    merchant_order_no: str | None = None,
+    order_time: str | None = None,
+) -> dict:
+    """Query payment status.
 
-    Do not pass merchant_order_no here. The LFWin merchant-order query path needs
-    merchant_order_no plus order_time and is not exposed by this tool.
+    Prefer platform order_no/orderid when create_payment_order returned it. If
+    order_no is null, pass merchant_order_no plus order_time returned by
+    create_payment_order.
     """
     service = get_service()
-    return await service.query_payment_order(order_no=order_no)
+    return await service.query_payment_order(
+        order_no=order_no,
+        merchant_order_no=merchant_order_no,
+        order_time=order_time,
+    )
 
 
 @mcp.tool()

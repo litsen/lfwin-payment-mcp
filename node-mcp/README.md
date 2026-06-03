@@ -79,18 +79,21 @@ MCP 或自研客户端只接受图片内容块时，使用裸 base64 和 MIME：
 
 ### 订单号使用规则
 
-`merchant_order_no` 和 `order_no` 不是同一个编号：
+`merchant_order_no`、`order_no` 和 `order_time` 不是同一个编号：
 
 - `merchant_order_no`：商户订单号，创建订单时传入，对应接口文档里的 `mch_orderid`，用于商户系统内部关联和展示。
 - `order_no`：平台订单号，由支付平台返回，对应接口文档里的 `orderid`，用于本 MCP 服务的订单查询、退款和退款查询。
+- `order_time`：本 MCP 创建支付订单时记录的下单时间，格式为 `yyyyMMddHHmmss`。当统一收银台 `pre_order` 没有返回平台 `orderid` 时，后续支付状态轮询必须使用 `merchant_order_no + order_time`。
 
-AI Agent 必须保存 `create_payment_order` 返回的 `order_no`。后续调用 `query_payment_order`、`refund_payment_order`、`query_refund_status` 时，优先且默认使用这个 `order_no`，不要把创建订单时传入的 `merchant_order_no` 当作 `order_no` 使用。
+AI Agent 必须保存 `create_payment_order` 返回的 `order_no`、`merchant_order_no` 和 `order_time`：
 
-接口文档说明底层订单查询接口也支持 `mch_orderid`，但当只传商户订单号时必须同时传 `order_time` 才能定位订单。本 MCP 当前的 `query_payment_order(order_no)` 参数语义是平台订单号，因此不应传 `merchant_order_no`。
+- 如果 `order_no_available=true` 且 `order_no` 不为空，后续调用 `query_payment_order`、`refund_payment_order`、`query_refund_status` 时优先使用 `order_no`。
+- 如果 `order_no_available=false` 或 `order_no=null`，不要把 `merchant_order_no` 当作 `order_no` 使用；支付状态轮询应调用 `query_payment_order`，并传入创建订单返回的 `merchant_order_no` 和 `order_time`。
+- 退款相关工具仍需要平台 `order_no/orderid`。如果创建订单没有返回平台订单号，必须先通过支付查询拿到平台 `orderid` 后再发起退款或退款查询。
 
 ### 查询和退款状态判断
 
-- 支付查询：`query_payment_order` 的 `order_no` 必须传平台订单号。返回 `status=10000` 且 `paystatus=1` 表示支付成功；`paystatus=0` 表示待付款；`paystatus=2` 表示支付失败。
+- 支付查询：优先传 `order_no`。如果创建订单时 `order_no` 为空，则传 `merchant_order_no` 和 `order_time`。返回 `status=10000` 且 `paystatus=1` 表示支付成功；`paystatus=0` 表示待付款；`paystatus=2` 表示支付失败。
 - 发起退款：`refund_payment_order` 的 `order_no` 必须传平台订单号，`mch_refund_no` 是商户退款流水号。同一笔订单多次部分退款时，每次退款应使用不同的 `mch_refund_no`。
 - 退款不是发起即成功：退款请求返回 `status=4001` 或 `status=10000` 只表示请求已被接受或处理中，不代表退款成功。必须继续调用 `query_refund_status` 查询实际结果。
 - 退款查询：`query_refund_status` 的 `order_no` 必须传平台订单号；如果发起退款时传了 `mch_refund_no`，查询时也应带上同一个 `mch_refund_no`。返回 `status=4001` 表示处理中；`status=10000` 且 `refund_status=1` 表示退款成功；`status=10000` 且 `refund_status=2` 表示退款失败。
@@ -142,13 +145,17 @@ PAYMENT_REQUEST_TIMEOUT_MS=15000
 
 返回结果：
 
-- `order_no`：平台订单号，对应接口文档里的 `orderid`。后续查询、退款、退款查询必须优先使用该值。
-- `merchant_order_no`：商户订单号，对应创建订单时传入的 `merchant_order_no` / 接口文档里的 `mch_orderid`，不要用它替代 `order_no` 查询。
+- `order_no`：平台订单号，对应接口文档里的 `orderid`。如果统一收银台未返回平台订单号，该字段为 `null`。
+- `order_no_available`：是否拿到了平台订单号。
+- `merchant_order_no`：商户订单号，对应创建订单时传入的 `merchant_order_no` / 接口文档里的 `mch_orderid`。
+- `order_time`：下单时间，格式为 `yyyyMMddHHmmss`。当 `order_no` 为 `null` 时，支付轮询使用 `merchant_order_no + order_time`。
 - `pay_url` / `qrcode` / `pay_qrcode_image` / `pay_qrcode_base64` / `pay_qrcode_mime_type` / `pay_qrcode_markdown` / `payment_display_examples`：支付展示字段。返回结果中的 `pay_qrcode_markdown` 可以直接让 AI 输出给用户，用于扫码支付；`pay_qrcode_image` 可直接作为 `<img src>`；`pay_qrcode_base64` 搭配 `pay_qrcode_mime_type` 可用于 MCP 图片内容块或只接受裸 base64 的客户端。
 
 ### query_payment_order
 
-- `order_no`：平台订单号，即 `create_payment_order` 返回的 `order_no` / 接口文档里的 `orderid`。不要传 `merchant_order_no`。
+- `order_no`：平台订单号，即 `create_payment_order` 返回的 `order_no` / 接口文档里的 `orderid`。当该字段存在时优先使用。
+- `merchant_order_no`：商户订单号，可选；当 `order_no` 为空时必须与 `order_time` 一起传入。
+- `order_time`：下单时间，可选；当 `order_no` 为空时必须与 `merchant_order_no` 一起传入，使用 `create_payment_order` 返回的 `order_time`。
 
 ### refund_payment_order
 

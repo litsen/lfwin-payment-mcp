@@ -1,6 +1,6 @@
 {
   "name": "@litsen/lfwin-payment-mcp",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "LFWin payment MCP server for Cursor, Cline, and other MCP clients.",
   "license": "MIT",
   "type": "module",

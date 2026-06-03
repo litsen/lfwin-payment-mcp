@@ -12,7 +12,7 @@ import { PaymentService } from "./service.js";
 
 const server = new McpServer({
   name: "lfwin-payment-mcp",
-  version: "0.1.8",
+  version: "0.1.9",
 });
 
 let service: PaymentService | undefined;
@@ -61,7 +61,7 @@ server.tool(
     "Create a cashier payment order. Amount is in yuan and merchant_order_no is the merchant's own unique order number.",
     "After success, display pay_qrcode_markdown, the returned image content block, pay_qrcode_image data URL, or pay_qrcode_base64 with pay_qrcode_mime_type as the QR code.",
     "If QR rendering fails, show pay_url/qrcode as the fallback payment link.",
-    "Save order_no/query_order_no as the platform order number for later query and refund tools.",
+    "Save order_no/query_order_no when present. If order_no is null, save merchant_order_no plus order_time and use both for query_payment_order polling.",
   ].join(" "),
   {
     merchant_order_no: z.string().min(1),
@@ -81,13 +81,22 @@ server.tool(
 server.tool(
   "query_payment_order",
   [
-    "Query payment order status by the platform order_no/orderid returned by create_payment_order.",
-    "Do not pass merchant_order_no here; LFWin merchant-order queries require merchant_order_no plus order_time and are not exposed by this tool.",
+    "Query payment order status. Prefer platform order_no/orderid when create_payment_order returned it.",
+    "If order_no is null, pass merchant_order_no plus order_time returned by create_payment_order. Pass either order_no or the merchant pair.",
   ].join(" "),
   {
-    order_no: z.string().min(1),
+    order_no: z.string().min(1).optional(),
+    merchant_order_no: z.string().min(1).optional(),
+    order_time: z.string().min(1).optional(),
   },
-  async (input) => jsonResult(await getService().queryPaymentOrder(input.order_no)),
+  async (input) =>
+    jsonResult(
+      await getService().queryPaymentOrder({
+        orderNo: input.order_no,
+        merchantOrderNo: input.merchant_order_no,
+        orderTime: input.order_time,
+      }),
+    ),
 );
 
 server.tool(
