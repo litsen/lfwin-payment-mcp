@@ -321,8 +321,8 @@ npm publish --access public
 GitHub Release：
 
 ```bash
-git tag v0.1.7
-git push origin v0.1.7
+git tag v0.1.8
+git push origin v0.1.8
 ```
 
 推送 `v*` tag 后，Release workflow 会自动构建 `.mcpb` 并上传到 GitHub Release。
@@ -350,7 +350,7 @@ npm run build
 生成文件：
 
 ```text
-dist/lfwin-payment-mcp-0.1.7.mcpb
+dist/lfwin-payment-mcp-0.1.8.mcpb
 ```
 
 MCPB 安装时会提示用户填写：

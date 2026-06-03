@@ -49,6 +49,7 @@ def test_create_payment_order_returns_display_and_platform_order_hints() -> None
         assert result["order_no"] == "202605270001"
         assert result["platform_order_no"] == "202605270001"
         assert result["query_order_no"] == "202605270001"
+        assert result["order_no_available"] is True
         assert result["merchant_order_no"] == "MCH-001"
         assert result["pay_url"] == "https://pay.example.test/cashier/202605270001"
         assert result["qrcode"] == result["pay_url"]
@@ -61,6 +62,34 @@ def test_create_payment_order_returns_display_and_platform_order_hints() -> None
         assert examples["mcp_image_content"]["data"] == "pay_qrcode_base64"
         assert "pay_url" in examples["payment_link"]
         assert "Do not use merchant_order_no" in str(result["display_instruction"])
+
+    asyncio.run(run())
+
+
+def test_create_payment_order_marks_missing_platform_orderid() -> None:
+    async def run() -> None:
+        client = FakeClient(
+            {
+                "create_cashier_order": {
+                    "status": "10000",
+                    "data": {
+                        "pay_url": "https://pay.example.test/cashier/no-orderid",
+                    },
+                    "message": "ok",
+                }
+            }
+        )
+        service = PaymentService(client)  # type: ignore[arg-type]
+
+        result = await service.create_payment_order("MCH-NO-ORDERID", 1.0)
+
+        assert result["order_no"] is None
+        assert result["platform_order_no"] is None
+        assert result["query_order_no"] is None
+        assert result["order_no_available"] is False
+        assert result["pay_url"] == "https://pay.example.test/cashier/no-orderid"
+        assert "did not include platform orderid" in str(result["display_instruction"])
+        assert "only when order_no/query_order_no is present" in str(result["next_action"])
 
     asyncio.run(run())
 
@@ -85,6 +114,7 @@ def test_create_payment_order_extracts_url_from_data_object() -> None:
         result = await service.create_payment_order("MCH-OBJECT", 9.9)
 
         assert result["pay_url"] == "https://pay.example.test/cashier/object"
+        assert result["order_no"] == "PLAT-OBJECT"
         assert result["qrcode"] == "https://pay.example.test/cashier/object"
         assert "[object Object]" not in str(result["pay_qrcode_markdown"])
         assert b64decode(str(result["pay_qrcode_base64"]))[:8] == b"\x89PNG\r\n\x1a\n"

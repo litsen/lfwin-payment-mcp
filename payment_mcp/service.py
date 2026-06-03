@@ -58,6 +58,16 @@ PAYMENT_TARGET_KEYS = (
 )
 
 
+ORDER_NO_KEYS = (
+    "orderid",
+    "order_id",
+    "orderNo",
+    "order_no",
+    "platform_order_no",
+    "platformOrderNo",
+)
+
+
 def extract_payment_target(value: object) -> str | None:
     if value in (None, ""):
         return None
@@ -78,6 +88,19 @@ def extract_payment_target(value: object) -> str | None:
     if isinstance(value, list):
         for item in value:
             target = extract_payment_target(item)
+            if target:
+                return target
+    return None
+
+
+def extract_order_no(value: object) -> str | None:
+    if value in (None, "", "[object Object]"):
+        return None
+    if isinstance(value, (str, int, float)):
+        return str(value)
+    if isinstance(value, dict):
+        for key in ORDER_NO_KEYS:
+            target = extract_order_no(value.get(key))
             if target:
                 return target
     return None
@@ -125,6 +148,14 @@ def first_refund_record(result: dict) -> dict:
 
 
 def payment_usage_instruction(order_no: object) -> str:
+    if not order_no:
+        return (
+            "Display pay_qrcode_markdown or pay_qrcode_image to the user for QR payment, "
+            "and keep pay_url/qrcode as the fallback payment link. The cashier pre_order "
+            "response did not include platform orderid, so order_no/query_order_no is null. "
+            "Do not invent an order_no from merchant_order_no; use merchant_order_no only "
+            "for merchant-side correlation unless another tool explicitly supports merchant-order queries."
+        )
     return (
         "Show pay_qrcode_markdown to the user when Markdown is supported; otherwise render "
         "pay_qrcode_image as an image data URL, use pay_qrcode_base64 with mime_type image/png "
@@ -180,13 +211,14 @@ class PaymentService:
             if pay_qrcode_image and pay_qrcode_image.startswith(PNG_DATA_URL_PREFIX)
             else None
         )
-        order_no = to_str(result.get("orderid")) or ""
+        order_no = extract_order_no(result) or extract_order_no(result.get("data"))
         return {
             "success": result.get("status") == "10000",
             "order_no": order_no,
             "platform_order_no": order_no,
             "query_order_no": order_no,
             "merchant_order_no": merchant_order_no,
+            "order_no_available": bool(order_no),
             "amount": amount,
             "status": PaymentStatus.PENDING.value,
             "pay_url": normalize_payment_target(pay_url),
@@ -199,7 +231,11 @@ class PaymentService:
             "raw_payment_data_json": value_as_json_string(result.get("data")),
             "expire_time": (datetime.now(UTC) + timedelta(minutes=15)).astimezone(CHINA_TZ).strftime("%Y-%m-%d %H:%M:%S"),
             "display_instruction": payment_usage_instruction(order_no),
-            "next_action": "Display the QR code/payment link, then poll query_payment_order with query_order_no/order_no.",
+            "next_action": (
+                "Display the QR code/payment link. Poll query_payment_order only when order_no/query_order_no is present."
+                if not order_no
+                else "Display the QR code/payment link, then poll query_payment_order with query_order_no/order_no."
+            ),
             "message": result.get("message"),
             "raw_status": str(result.get("status", "")),
         }

@@ -103,6 +103,15 @@ const paymentTargetKeys = [
   "codeUrl",
 ] as const;
 
+const orderNoKeys = [
+  "orderid",
+  "order_id",
+  "orderNo",
+  "order_no",
+  "platform_order_no",
+  "platformOrderNo",
+] as const;
+
 function extractPaymentTarget(value: unknown): string | undefined {
   if (value === null || value === undefined || value === "") {
     return undefined;
@@ -140,6 +149,25 @@ function extractPaymentTarget(value: unknown): string | undefined {
   return undefined;
 }
 
+function extractOrderNo(value: unknown): string | undefined {
+  if (value === null || value === undefined || value === "" || value === "[object Object]") {
+    return undefined;
+  }
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+  if (typeof value === "object" && !Array.isArray(value)) {
+    const record = value as Record<string, unknown>;
+    for (const key of orderNoKeys) {
+      const target = extractOrderNo(record[key]);
+      if (target) {
+        return target;
+      }
+    }
+  }
+  return undefined;
+}
+
 function normalizePaymentTarget(value: unknown): string | undefined {
   const target = extractPaymentTarget(value);
   if (!target || target === "[object Object]") {
@@ -160,6 +188,13 @@ function valueAsJsonString(value: unknown): string | undefined {
 }
 
 function paymentUsageInstruction(orderNo: unknown): string {
+  if (!orderNo) {
+    return [
+      "Display pay_qrcode_markdown or pay_qrcode_image to the user for QR payment, and keep pay_url/qrcode as the fallback payment link.",
+      "The cashier pre_order response did not include platform orderid, so order_no/query_order_no is null.",
+      "Do not invent an order_no from merchant_order_no; use merchant_order_no only for merchant-side correlation unless another tool explicitly supports merchant-order queries.",
+    ].join(" ");
+  }
   return [
     "Show pay_qrcode_markdown to the user when Markdown is supported; otherwise render pay_qrcode_image as an image data URL,",
     "use pay_qrcode_base64 with mime_type image/png when the client expects raw base64, or use pay_url/qrcode as the payment link/QR content.",
@@ -213,7 +248,7 @@ export class PaymentService {
     const payQrcodeBase64 = payQrcodeImage?.startsWith(PNG_DATA_URL_PREFIX)
       ? payQrcodeImage.slice(PNG_DATA_URL_PREFIX.length)
       : undefined;
-    const orderNo = valueAsString(result.orderid) ?? "";
+    const orderNo = extractOrderNo(result) ?? extractOrderNo(result.data) ?? null;
 
     return {
       success: result.status === "10000",
@@ -221,6 +256,7 @@ export class PaymentService {
       platform_order_no: orderNo,
       query_order_no: orderNo,
       merchant_order_no: input.merchantOrderNo,
+      order_no_available: Boolean(orderNo),
       amount: input.amount,
       status: PaymentStatus.Pending,
       pay_url: normalizePaymentTarget(payUrl),
@@ -244,7 +280,9 @@ export class PaymentService {
         .format(new Date(Date.now() + 15 * 60 * 1000))
         .replaceAll("/", "-"),
       display_instruction: paymentUsageInstruction(orderNo),
-      next_action: "Display the QR code/payment link, then poll query_payment_order with query_order_no/order_no.",
+      next_action: orderNo
+        ? "Display the QR code/payment link, then poll query_payment_order with query_order_no/order_no."
+        : "Display the QR code/payment link. Poll query_payment_order only when order_no/query_order_no is present.",
       message: valueAsString(result.message),
       raw_status: valueAsString(result.status) ?? "",
     };
